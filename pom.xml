@@ -13,23 +13,25 @@
 
 		<!-- snapshot == not recommended: rather use PR-labelled release!-->
 		<!-- FIXME: Decide on version -->
-		<version>15.0-SNAPSHOT</version>
+<!--		<version>15.0-SNAPSHOT</version>-->
+		<version>16.0-PR2653</version>
 	</parent>
 
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.github.matsim-scenarios</groupId>
-	<artifactId>matsim-template</artifactId>
+	<artifactId>matsim-mexico-city</artifactId>
 	<version>1.x-SNAPSHOT</version>
 
-	<name>MATSim Template Model</name>
-	<description>A transport model of template</description>
+	<name>MATSim Open Mexico-City Model</name>
+	<description>MATSim Open Mexico-City Model</description>
 
 	<properties>
-		<!-- FIXME: change main class -->
-		<main.class>org.matsim.run.RunTemplateScenario</main.class>
+		<main.class>org.matsim.run.RunMexicoCityScenario</main.class>
 
 		<!-- Don't modify, will use the same version as parent -->
 		<matsim.version>${project.parent.version}</matsim.version>
+		<sonar.organization>matsim-scenarios</sonar.organization>
+		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
 
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -40,14 +42,14 @@
 		<repository>
 			<id>github</id>
 			<name>GitHub Packages</name>
-			<!-- FIXME: Update Repo -->
-			<url>https://maven.pkg.github.com/matsim-scenarios/matsim-template-scenario</url>
+			<url>https://maven.pkg.github.com/matsim-scenarios/matsim-mexico-city</url>
 		</repository>
 	</distributionManagement>
 
 	<dependencies>
 
 		<!-- Core dependencies, don't remove! -->
+		<!-- This is the matsim "core": -->
 		<dependency>
 			<groupId>org.matsim</groupId>
 			<artifactId>matsim</artifactId>
@@ -61,6 +63,62 @@
 
 		<!-- Custom dependencies -->
 
+		<dependency>
+			<groupId>org.matsim</groupId>
+			<artifactId>matsim-examples</artifactId>
+			<version>${matsim.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.matsim.contrib</groupId>
+			<artifactId>simwrapper</artifactId>
+			<version>${matsim.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.matsim.contrib</groupId>
+			<artifactId>vsp</artifactId>
+			<version>${matsim.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.github.matsim-org</groupId>
+			<artifactId>gtfs2matsim</artifactId>
+			<version>master-33809c4f0f-1</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.matsim</groupId>
+					<artifactId>matsim</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.postgresql</groupId>
+					<artifactId>postgresql</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi</artifactId>
+			<version>5.2.3</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<version>5.2.3</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-scratchpad</artifactId>
+			<version>5.2.3</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.xmlbeans</groupId>
+			<artifactId>xmlbeans</artifactId>
+			<version>5.1.1</version>
+		</dependency>
+
 
 		<!-- Test dependencies -->
 		<dependency>
@@ -72,6 +130,7 @@
 		<dependency>
 			<groupId>org.assertj</groupId>
 			<artifactId>assertj-core</artifactId>
+			<version>3.24.2</version>
 			<scope>test</scope>
 		</dependency>
 
@@ -90,7 +149,26 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.10.1</version>
+				<version>3.11.0</version>
+				<configuration>
+					<release>17</release>
+					<showWarnings>false</showWarnings>
+					<showDeprecation>false</showDeprecation>
+					<encoding>UTF-8</encoding>
+				</configuration>
+			</plugin>
+
+			<plugin>  <!-- Create sources.jar -->
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 
 			<plugin>
@@ -99,8 +177,9 @@
 				<version>3.0.0-M9</version>
 				<configuration>
 					<forkCount>1</forkCount>
+					<reuseForks>false</reuseForks>
 					<!-- avoid out of memory errors: -->
-					<argLine>@{argLine} -Xmx6500m -Djava.awt.headless=true -Dmatsim.preferLocalDtds=true</argLine>
+					<argLine>@{argLine} -Xmx9500m -Djava.awt.headless=true -Dmatsim.preferLocalDtds=true</argLine>
 					<!--necessary in tu berlin gitlab. BUT not good in other places, so solve by command line switch only where needed.  kai, nov'18-->
 					<!--<useSystemClassLoader>false</useSystemClassLoader>-->
 				</configuration>
@@ -181,6 +260,7 @@
 									<excludes>
 										<exclude>META-INF/*.RSA</exclude>
 										<exclude>META-INF/*.SF</exclude>
+										<exclude>META-INF/*.DSA</exclude>
 										<exclude>META-INF/*.RSA</exclude>
 									</excludes>
 								</filter>

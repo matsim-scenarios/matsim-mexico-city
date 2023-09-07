@@ -9,12 +9,15 @@ authors:
     family-names: Rakow
     email: rakow@vsp.tu-berlin.de
     affiliation: Technische Universität Berlin
-    orcid: 'https://orcid.org/0000-0003-3760-2243'
-  - given-names: Surname
-    family-names: Name
-    email: yourmail@somewhere.com
+    orcid: 'https://orcid.org/0000-0002-6354-4529'
+  - given-names: Simon
+      family-names: Meinhardt
+      email: meinhardt@vsp.tu-berlin.de
+      affiliation: Technische Universität Berlin
+      orcid: 'https://orcid.org/0000-0002-6354-4529'
 
-url: "https://github.com/matsim-scenarios/matsim-scenario-template"
+url: "https://github.com/matsim-scenarios/matsim-mexico-city"
+TODO: adapt release date
 date-released: 2023-01-01
 year: 2023
 version: 1.0

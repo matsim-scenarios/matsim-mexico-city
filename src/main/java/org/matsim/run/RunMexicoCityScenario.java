@@ -6,7 +6,7 @@ import org.matsim.api.core.v01.Scenario;
 import org.matsim.application.MATSimApplication;
 import org.matsim.application.analysis.CheckPopulation;
 import org.matsim.application.analysis.traffic.LinkStats;
-import org.matsim.application.analysis.travelTimeValidation.TravelTimeAnalysis;
+import org.matsim.application.analysis.traffic.TravelTimeAnalysis;
 import org.matsim.application.options.SampleOptions;
 import org.matsim.application.prepare.CreateLandUseShp;
 import org.matsim.application.prepare.freight.tripExtraction.ExtractRelevantFreightTrips;
@@ -24,7 +24,7 @@ import picocli.CommandLine;
 import javax.annotation.Nullable;
 import java.util.List;
 
-@CommandLine.Command(header = ":: Open Template Scenario ::", version = RunTemplateScenario.VERSION, mixinStandardHelpOptions = true)
+@CommandLine.Command(header = ":: Open Template Scenario ::", version = RunMexicoCityScenario.VERSION, mixinStandardHelpOptions = true)
 @MATSimApplication.Prepare({
 		CreateNetworkFromSumo.class, CreateTransitScheduleFromGtfs.class, TrajectoryToPlans.class, GenerateShortDistanceTrips.class,
 		MergePopulations.class, ExtractRelevantFreightTrips.class, DownSamplePopulation.class, ExtractHomeCoordinates.class,
@@ -33,8 +33,8 @@ import java.util.List;
 @MATSimApplication.Analysis({
 		TravelTimeAnalysis.class, LinkStats.class, CheckPopulation.class
 })
-// FIXME: Rename scenario
-public class RunTemplateScenario extends MATSimApplication {
+
+public class RunMexicoCityScenario extends MATSimApplication {
 
 	static final String VERSION = "1.0";
 
@@ -42,17 +42,16 @@ public class RunTemplateScenario extends MATSimApplication {
 	private final SampleOptions sample = new SampleOptions(25, 10, 1);
 
 
-	public RunTemplateScenario(@Nullable Config config) {
+	public RunMexicoCityScenario(@Nullable Config config) {
 		super(config);
 	}
 
-	// FIXME: update config path
-	public RunTemplateScenario() {
-		super(String.format("input/v%s/template-v%s-25pct.config.xml", VERSION, VERSION));
+	public RunMexicoCityScenario() {
+		super(String.format("input/v%s/template-v%s-1pct.config.xml", VERSION, VERSION));
 	}
 
 	public static void main(String[] args) {
-		MATSimApplication.run(RunTemplateScenario.class, args);
+		MATSimApplication.run(RunMexicoCityScenario.class, args);
 	}
 
 	@Nullable

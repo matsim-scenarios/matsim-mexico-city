@@ -37,7 +37,7 @@ initial = {
     "ride": -2.22873502992
 }
 
-# FIXME: Adjust
+# # TODO: decide on modes to tune + put in target modal split here
 target = {
     "walk": 0.1,
     "bike": 0.1,
@@ -46,6 +46,8 @@ target = {
     "ride": 0.1
 }
 
+# TODO: create and put in dilutionArea file, decide on coord sys
+# TODO: create and put in homes file
 region = gpd.read_file("../scenarios/dilutionArea.shp").set_crs("EPSG:25832")
 homes = pd.read_csv("template-v1.0-homes.csv", dtype={"person": "str"})
 
@@ -67,7 +69,7 @@ def filter_modes(df):
     return df
 
 
-# FIXME: Adjust paths and config
+# TODO: Adjust paths and config
 
 study, obj = calibration.create_mode_share_study("calib", "matsim-template-1.0.jar",
                                         "../scenarios/metropole-ruhr-v1.0/input/metropole-ruhr-v1.4-3pct.config.xml",

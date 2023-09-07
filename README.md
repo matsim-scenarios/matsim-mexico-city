@@ -1,10 +1,12 @@
-# The MATSim Open Template Scenario
+# The MATSim Open Mexico City Scenario
 
-![Build Status](https://github.com/matsim-scenarios/matsim-scenario-template/workflows/build/badge.svg?branch=main)
-![license](https://img.shields.io/github/license/matsim-scenarios/matsim-scenario-template.svg)
+![Build Status](https://github.com/matsim-scenarios/matsim-mexico-city/workflows/build/badge.svg?branch=main)
+[comment]: <> (TODO: do I have to create this .svg file? -> ask CR)
+![license](https://img.shields.io/github/license/matsim-scenarios/matsim-mexico-city.svg)
 ![JDK](https://img.shields.io/badge/JDK-17+-green.svg)
 
 
+[comment]: <> (TODO: create this png)
 ![MATSim network and agents](scenarios/visualization.png "MATSim network and agents")
 
 
@@ -12,28 +14,28 @@
 
 When using this template make sure to adapt it as needed:
 
-- [ ] Rename Run-Class in `src/main/java` folder
-- [ ] Modify config in `input`
-- [ ] Update pom.xml
-  - [ ] Name, description and version
-  - [ ] Main class
+- [x] Rename Run-Class in `src/main/java` folder
+- [x] Modify config in `input`
+- [x] Update pom.xml
+  - [x] Name, description and version
+  - [x] Main class
 - [ ] Makefile
-- [ ] Update CITATION.cff (Authors and version)
-- [ ] Modify calibration.py in `src/main/python`
+- [x] Update CITATION.cff (Authors and version)
+- [x] Modify calibration.py in `src/main/python`
 - [ ] Update README.md (This file)
-  - [ ] Change Name and URLs
-  - [ ] Badges
+  - [x] Change Name and URLs
+  - [x] Badges
   - [ ] Remove this TODO list when done
 
 ----
 
 ### About this project
 
-This repository provides an open MATSim transport model for [name], provided by the [Transport Systems Planning and Transport Telematics group](https://www.vsp.tu-berlin.de) of [Technische Universität Berlin](http://www.tu-berlin.de).
+This repository provides an open MATSim transport model for Mexico City, provided by the [Transport Systems Planning and Transport Telematics group](https://www.vsp.tu-berlin.de) of [Technische Universität Berlin](http://www.tu-berlin.de).
 
 <a rel="TU Berlin" href="https://www.vsp.tu-berlin.de"><img src="https://svn.vsp.tu-berlin.de/repos/public-svn/ueber_uns/logo/TUB_Logo.png" width="15%" height="15%"/></a>
 
-This scenario contains a 25pct sample of [name] and its surrounding area; road capacities are accordingly reduced. The scenario is calibrated taking into consideration the traffic counts, modal split and mode-specific trip distance distributions.
+This scenario contains a 1pct sample of Mexico City and its surrounding area; road capacities are accordingly reduced. The scenario is calibrated taking into consideration the traffic counts, modal split and mode-specific trip distance distributions.
 
 ### Licenses
 
@@ -46,23 +48,24 @@ The **MATSim input files, output files, analysis data and visualizations** are l
 
 ### Note
 
-Handling of large files within git is not without problems (git lfs files are not included in the zip download; we have to pay; ...).  In consequence, large files, both on the input and on the output side, reside at https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/leipzig .
+Handling of large files within git is not without problems (git lfs files are not included in the zip download; we have to pay; ...).  In consequence, large files, both on the input and on the output side, reside at https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/mx/mexico-city/ .
 
 ----
-### Run the MATSim Template scenario
+### Run the MATSim Mexico City scenario
 
-The [name] scenario has a command line interface providing the following options:
+The Mexico City scenario has a command line interface providing the following options:
 
+[comment]: <> (TODO: create this png)
 ![Scenario CLI](scenarios/cli.png "Scenario CLI")
 
 It can be used by using either of these methods:
 
-##### ... using an IDE, e.g. Eclipse, IntelliJ - Alternative 1: use cloned/downloaded matsim-[name] repository
+##### ... using an IDE, e.g. Eclipse, IntelliJ - Alternative 1: use cloned/downloaded matsim-Mexico City repository
 (Requires either cloning or downloading the repository.)
 
 1. Set up the project in your IDE.
 1. Make sure the project is configured as maven project.
-1. Run the JAVA class `src/main/java/org/matsim/run/RunTemplateScenario.java`.
+1. Run the JAVA class `src/main/java/org/matsim/run/RunMexicoCityScenario.java`.
 1. "Open" the output directory.  You can drag files into VIA as was already done above.
 1. Edit the config file or adjust the run class. Re-run MATSim.
 
@@ -71,8 +74,8 @@ It can be used by using either of these methods:
 
 1. Open the cmd and go to your project directory
 2. Build the scenario using `mvnw package` 
-3. There should be a file directly in the `matsim-template` directory with name approximately as `matsim-template-1.0.jar`.
-4. Run this file from the command line using `java -jar matsim-template-1.0.jar --help` to see all possible options.
+3. There should be a file directly in the `matsim-mexico-city` directory with name approximately as `matsim-mexico-city-1.0.jar`.
+4. Run this file from the command line using `java -jar matsim-mexico-city-1.0.jar --help` to see all possible options.
     1. For example, one can disable lanes or run the 25pct scenario using the available options
-5. Start this scenario using the default config by running `java -jar matsim-template-1.0.jar`
+5. Start this scenario using the default config by running `java -jar matsim-mexico-city-1.0.jar`
 6. "Open" the output directory.  You can drag files into VIA as was already done above.
