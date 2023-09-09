@@ -37,6 +37,7 @@ import java.util.List;
 public class RunMexicoCityScenario extends MATSimApplication {
 
 	static final String VERSION = "1.0";
+	public static final String CRS = "EPSG:4326";
 
 	@CommandLine.Mixin
 	private final SampleOptions sample = new SampleOptions(25, 10, 1);
