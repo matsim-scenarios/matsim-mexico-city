@@ -27,23 +27,30 @@ input/network.osm.pbf:
 
 input/network.osm: input/network.osm.pbf
 
-	# TODO: Adjust level of details and area
-
 	$(osmosis) --rb file=$<\
 	 --tf accept-ways bicycle=yes highway=motorway,motorway_link,trunk,trunk_link,primary,primary_link,secondary_link,secondary,tertiary,motorway_junction,residential,unclassified,living_street\
+#	after thinking about whether to use the exact city borders from shp or a bounding box, the bounding box is chosen
+#	because streets do not necessarily end at the city border and some more detailed network does not hurt,
+#	as long as the net does not become too large -sme1023
 #	 --bounding-polygon file="../shared-svn/projects/$N/data/area.poly"\#
-	 --bounding-box top=19.5837 left=-99.3442 bottom=19.1929 right=-98.9319\
+	 --bounding-box top=19.5973 left=-99.3707 bottom=19.0446 right=-98.9319\
 	 --used-node --wb input/network-detailed.osm.pbf
 
 	$(osmosis) --rb file=$<\
 	 --tf accept-ways highway=motorway,motorway_link,trunk,trunk_link,primary,primary_link,secondary_link,secondary,tertiary,motorway_junction\
-	 --bounding-box top=19.9010 left=-99.7449 bottom=18.8726 right=-98.5336\
+#	 here it makes sense to use the shp file of zmvm, as this is an area we are interested in, but not the main focus -sme1023
+	 --bounding-polygon file="../../public-svn/projects/$N/$N-v1.0\input\zmvm_2010/zmvm_2010.shp"\
+#	 --bounding-box top=19.9010 left=-99.7449 bottom=18.8726 right=-98.5336\
+#	 coarse = rough
 	 --used-node --wb input/network-coarse.osm.pbf
 
 	$(osmosis) --rb file=$<\
 	 --tf accept-ways highway=motorway,motorway_link,motorway_junction,trunk,trunk_link,primary,primary_link\
-	 --bounding-box top=21.412 left=-100.876 bottom=18.073 right=-97.086\
+#	 this is the pendant of german scenarios "germany network". So, it is just a really wide area with big links only -sme1023
+		 --bounding-box top=21.412 left=-100.876 bottom=18.073 right=-97.086\
 	 --used-node --wb input/network-wide-area.osm.pbf
+
+#	 TODO: continue here
 
 	$(osmosis) --rb file=input/network-wide-area.osm.pbf --rb file=input/network-coarse.osm.pbf --rb file=input/network-detailed.osm.pbf\
   	 --merge --merge\
