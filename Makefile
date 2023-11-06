@@ -1,10 +1,11 @@
 
 N := mexico-city
 V := v1.0
-CRS := EPSG:4326
+#Mexico ITRF92 / UTM zone 12N
+CRS := EPSG:4485
 
 MEMORY ?= 20G
-JAR := matsim-$(N)-1.x-SNAPSHOT-214db96-dirty.jar
+JAR := matsim-$(N)-1.x-SNAPSHOT-12758f5-dirty.jar
 
 ifndef SUMO_HOME
 	export SUMO_HOME := $(abspath ../../sumo-1.15.0/)
@@ -20,6 +21,8 @@ sc := java -Xmx$(MEMORY) -jar $(JAR)
 
 $(JAR):
 	mvn package
+
+############################################ 1) NETWORK CREATION ###########################################################
 
 # Required files
 input/network.osm.pbf:
@@ -69,42 +72,32 @@ input/sumo.net.xml: input/network.osm
 # it would be nice to have a osm mx netConvert file, but this does not seem to exist. Therefore, standard sumo types are used -sme1123
 # ,$(SUMO_HOME)/data/typemap/osmNetconvertUrbanDe.typ.xml\
 
-#--proj "+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"\
-
 	$(SUMO_HOME)/bin/netconvert --osm-files $< -o=$@ --geometry.remove --ramps.guess --ramps.no-split\
-	 --type-files $(SUMO_HOME)data\typemap\osmNetconvert.typ.xml
+	 --type-files $(SUMO_HOME)data\typemap\osmNetconvert.typ.xml\
 	 --tls.guess-signals true --tls.discard-simple --tls.join --tls.default-type actuated\
 	 --junctions.join --junctions.corner-detail 5\
 	 --roundabouts.guess --remove-edges.isolated\
 	 --no-internal-links --keep-edges.by-vclass passenger,bicycle\
 	 --remove-edges.by-vclass hov,tram,rail,rail_urban,rail_fast,pedestrian\
 	 --output.original-names --output.street-names\
-	 --proj "+towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
+	 --proj "+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"\
 
 input/first-network.xml.gz: input/sumo.net.xml
+
 	$(sc) prepare network-from-sumo $< --target-crs $(CRS) --output $@
 
 	$(sc) prepare clean-network $@ --output $@ --modes car,ride,bike
 
 
-#TODO: there is an issue with the CRS, might be due to the run params at sumo netconvert not being read in correctly
 input/first-network-with-pt.xml.gz: input/first-network.xml.gz
 
 	$(sc) prepare transit-from-gtfs --network $<\
-	 --output=input/$V\
-	 --name $N-$V --date "2020-09-15" --target-crs $CRS \
+	 --output=input/\
+	 --name $N-$V --date "2021-03-09" --target-crs $(CRS) \
 	 ../../public-svn/matsim/scenarios/countries/mx/$N/$N-$V/input/gtfs_cdmx_2020-09-15.zip
-	 --shp ../../public-svn/matsim/scenarios/countries/mx/$N/$N-$V/input/zmvm_2010/zmvm_2010.shp/
 
-input/freight-trips.xml.gz: input/$V/$N-$V-network.xml.gz
 
-# long-haul freight trips can only be added with a source for them, in a v1.x it could be included
-#$(sc) extract-freight-trips ../shared-svn/projects/german-wide-freight/v1.2/german-wide-freight-25pct.xml.gz\
-#	 --network ../shared-svn/projects/german-wide-freight/original-data/german-primary-road.network.xml.gz\
-#	 --input-crs EPSG:5677\
-#	 --target-crs $CRS\
-#	 --shp ../shared-svn/projects/$N/data/shp/$N.shp --shp-crs $CRS\
-#	 --output $@
+############################################ 2) POPULATION CREATION ###########################################################
 
 input/$V/prepare-25pct.plans.xml.gz:
 	$(sc) prepare trajectory-to-plans\
