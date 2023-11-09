@@ -5,7 +5,7 @@ V := v1.0
 CRS := EPSG:4485
 
 MEMORY ?= 20G
-JAR := matsim-$(N)-1.x-SNAPSHOT-12758f5-dirty.jar
+JAR := matsim-mexico-city-1.x-SNAPSHOT-97be363-dirty.jar
 
 ifndef SUMO_HOME
 	export SUMO_HOME := $(abspath ../../sumo-1.15.0/)
@@ -98,6 +98,11 @@ input/first-network-with-pt.xml.gz: input/first-network.xml.gz
 
 
 ############################################ 2) POPULATION CREATION ###########################################################
+
+input/first-population-cdmx-only-1pct-homeLocOnly.plans.xml.gz: ..\..\public-svn\matsim\scenarios\countries\mx\mexico-city\mexico-city-v1.0\input\manzanas_censo2020\manzanas_censo2020_utm12n.shp
+	$(sc) prepare mexico-city-population\
+		--shp $<\
+		--output $@
 
 input/$V/prepare-25pct.plans.xml.gz:
 	$(sc) prepare trajectory-to-plans\
