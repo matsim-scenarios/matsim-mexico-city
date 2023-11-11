@@ -5,7 +5,7 @@ V := v1.0
 CRS := EPSG:4485
 
 MEMORY ?= 20G
-JAR := matsim-mexico-city-1.x-SNAPSHOT-97be363-dirty.jar
+JAR := matsim-mexico-city-1.x-SNAPSHOT-40ae115-dirty.jar
 
 ifndef SUMO_HOME
 	export SUMO_HOME := $(abspath ../../sumo-1.15.0/)
@@ -101,6 +101,12 @@ input/first-network-with-pt.xml.gz: input/first-network.xml.gz
 
 input/first-population-cdmx-only-1pct-homeLocOnly.plans.xml.gz: ..\..\public-svn\matsim\scenarios\countries\mx\mexico-city\mexico-city-v1.0\input\manzanas_censo2020\manzanas_censo2020_utm12n.shp
 	$(sc) prepare mexico-city-population\
+		--shp $<\
+		--output $@
+
+input/first-population-zmvm-without-cdmx-1pct-homeLocOnly.plans.xml.gz: ..\..\public-svn\matsim\scenarios\countries\mx\mexico-city\mexico-city-v1.0\input\zmvm_2010\zmvm_2010_utm12n.shp
+	$(sc) prepare zmvm-population\
+		--input ..\..\public-svn\matsim\scenarios\countries\mx\mexico-city\mexico-city-v1.0\input\iter_13_cpv2020\conjunto_de_datos\conjunto_de_datos_iter_13CSV20.csv,..\..\public-svn\matsim\scenarios\countries\mx\mexico-city\mexico-city-v1.0\input\iter_15_cpv2020\conjunto_de_datos\conjunto_de_datos_iter_15CSV20.csv\
 		--shp $<\
 		--output $@
 
