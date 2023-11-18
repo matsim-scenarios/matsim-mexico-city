@@ -30,6 +30,7 @@ public final class MexicoCityUtils {
 	static final String LOC = "loc";
 	static final String AGEB = "ageb";
 	static final String MZA = "mza";
+	public static final String REGION_TYPE = "RegionType";
 
 	static final String BIKE_AVAIL = "bikeAvail";
 	static final String PT_ABO_AVAIL = "ptAboAvail";

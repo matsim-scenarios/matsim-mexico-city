@@ -110,6 +110,27 @@ input/first-population-zmvm-without-cdmx-1pct-homeLocOnly.plans.xml.gz: ..\..\pu
 		--shp $<\
 		--output $@
 
+input/mexico-city-static-1pct.plans.xml.gz: input/first-population-cdmx-only-1pct-homeLocOnly.plans.xml.gz input/first-population-zmvm-without-cdmx-1pct-homeLocOnly.plans.xml.gz
+	$(sc) prepare merge-populations $^\
+	 --output $@
+
+input/mexico-city-activities-1pct.plans.xml.gz: input/mexico-city-static-1pct.plans.xml.gz
+	$(sc) prepare activity-sampling --seed 1 --input $< --output $@ --persons #TODO --activities #TODO
+
+input/berlin-initial-1pct.plans.xml.gz: input/mexico-city-activities-1pct.plans.xml.gz #TODO-facilities.xml.gz input/v1.0/mexico-city-v1.0-network.xml.gz
+	$(sc) prepare init-location-choice\
+	 --input $<\
+	 --output $@\
+	 --facilities $(word 2,$^)\
+	 --network $(word 3,$^)\
+	 --shp # TODO$(germany)/vg5000/vg5000_ebenen_0101/VG5000_GEM.shp\
+	 --commuter #TODO $(germany)/regionalstatistik/commuter.csv\
+
+	# For debugging and visualization
+	$(sc) prepare downsample-population $@\
+		 --sample-size 0.01\
+		 --samples 0.01\
+
 input/$V/prepare-25pct.plans.xml.gz:
 	$(sc) prepare trajectory-to-plans\
 	 --name prepare --sample-size 0.25 --output input/$V\

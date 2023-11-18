@@ -10,6 +10,7 @@ import org.matsim.application.analysis.traffic.TravelTimeAnalysis;
 import org.matsim.application.options.SampleOptions;
 import org.matsim.application.prepare.CreateLandUseShp;
 import org.matsim.application.prepare.freight.tripExtraction.ExtractRelevantFreightTrips;
+import org.matsim.application.prepare.network.CleanNetwork;
 import org.matsim.application.prepare.network.CreateNetworkFromSumo;
 import org.matsim.application.prepare.population.*;
 import org.matsim.application.prepare.pt.CreateTransitScheduleFromGtfs;
@@ -19,6 +20,11 @@ import org.matsim.core.config.groups.PlansCalcRouteConfigGroup;
 import org.matsim.core.config.groups.VspExperimentalConfigGroup;
 import org.matsim.core.controler.AbstractModule;
 import org.matsim.core.controler.Controler;
+import org.matsim.prepare.ExtractFacilityShp;
+import org.matsim.prepare.population.CreateMexicoCityPopulation;
+import org.matsim.prepare.population.CreateMetropolitanAreaPopulation;
+import org.matsim.prepare.population.InitLocationChoice;
+import org.matsim.prepare.population.RunActivitySampling;
 import picocli.CommandLine;
 
 import javax.annotation.Nullable;
@@ -26,9 +32,10 @@ import java.util.List;
 
 @CommandLine.Command(header = ":: Open Template Scenario ::", version = RunMexicoCityScenario.VERSION, mixinStandardHelpOptions = true)
 @MATSimApplication.Prepare({
-		CreateNetworkFromSumo.class, CreateTransitScheduleFromGtfs.class, TrajectoryToPlans.class, GenerateShortDistanceTrips.class,
-		MergePopulations.class, ExtractRelevantFreightTrips.class, DownSamplePopulation.class, ExtractHomeCoordinates.class,
-		CreateLandUseShp.class, ResolveGridCoordinates.class, FixSubtourModes.class, AdjustActivityToLinkDistances.class, XYToLinks.class
+		AdjustActivityToLinkDistances.class, CleanNetwork.class, CreateLandUseShp.class, CreateMetropolitanAreaPopulation.class, CreateMexicoCityPopulation.class,
+		CreateNetworkFromSumo.class, CreateTransitScheduleFromGtfs.class, DownSamplePopulation.class, ExtractFacilityShp.class, ExtractHomeCoordinates.class,
+		ExtractRelevantFreightTrips.class, FixSubtourModes.class, GenerateShortDistanceTrips.class, InitLocationChoice.class, MergePopulations.class,
+		ResolveGridCoordinates.class, RunActivitySampling.class, TrajectoryToPlans.class, XYToLinks.class
 })
 @MATSimApplication.Analysis({
 		TravelTimeAnalysis.class, LinkStats.class, CheckPopulation.class
@@ -37,7 +44,7 @@ import java.util.List;
 public class RunMexicoCityScenario extends MATSimApplication {
 
 	static final String VERSION = "1.0";
-	public static final String CRS = "EPSG:4326";
+	public static final String CRS = "EPSG:4485";
 
 	@CommandLine.Mixin
 	private final SampleOptions sample = new SampleOptions(25, 10, 1);
@@ -83,10 +90,10 @@ public class RunMexicoCityScenario extends MATSimApplication {
 		}
 
 		config.planCalcScore().addActivityParams(new PlanCalcScoreConfigGroup.ActivityParams("car interaction").setTypicalDuration(60));
-		config.planCalcScore().addActivityParams(new PlanCalcScoreConfigGroup.ActivityParams("other").setTypicalDuration(600 * 3));
+		config.planCalcScore().addActivityParams(new PlanCalcScoreConfigGroup.ActivityParams("other").setTypicalDuration((double) 600 * 3));
 
-		config.planCalcScore().addActivityParams(new PlanCalcScoreConfigGroup.ActivityParams("freight_start").setTypicalDuration(60 * 15));
-		config.planCalcScore().addActivityParams(new PlanCalcScoreConfigGroup.ActivityParams("freight_end").setTypicalDuration(60 * 15));
+		config.planCalcScore().addActivityParams(new PlanCalcScoreConfigGroup.ActivityParams("freight_start").setTypicalDuration((double) 60 * 15));
+		config.planCalcScore().addActivityParams(new PlanCalcScoreConfigGroup.ActivityParams("freight_end").setTypicalDuration((double) 60 * 15));
 
 		config.controler().setOutputDirectory(sample.adjustName(config.controler().getOutputDirectory()));
 		config.plans().setInputFile(sample.adjustName(config.plans().getInputFile()));
