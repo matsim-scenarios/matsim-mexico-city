@@ -164,27 +164,27 @@ public class CreateMATSimFacilities implements MATSimAppCommand {
 //		classification of attr codigo_act: https://www.inegi.org.mx/scian/
 		Set<String> act = new HashSet<>();
 
-		if (work.contains(ft.getAttribute(ATTR_NAME).toString().split("(?<=\\G.{2})")[0])) {
+		if (work.contains(ft.getAttribute(ATTR_NAME).toString().split(getPattern(2))[0])) {
 			act.add("work");
 			act.add("work_business");
 		}
 		if (ft.getAttribute(ATTR_NAME).toString().startsWith("46")) {
 			act.add("shop_other");
-			if (shopDaily.contains(ft.getAttribute(ATTR_NAME).toString().split("(?<=\\G.{4})")[0])) {
+			if (shopDaily.contains(ft.getAttribute(ATTR_NAME).toString().split(getPattern(4))[0])) {
 				act.add("shop_daily");
 			}
 		}
 		if (ft.getAttribute(ATTR_NAME).toString().startsWith("61111")) {
 			act.add("edu_kiga");
 		}
-		if (eduBasic.contains(ft.getAttribute(ATTR_NAME).toString().split("(?<=\\G.{5})")[0])) {
+		if (eduBasic.contains(ft.getAttribute(ATTR_NAME).toString().split(getPattern(5))[0])) {
 			act.add("edu_primary");
 			act.add("edu_secondary");
 		}
-		if (eduHigher.contains(ft.getAttribute(ATTR_NAME).toString().split("(?<=\\G.{5})")[0])) {
+		if (eduHigher.contains(ft.getAttribute(ATTR_NAME).toString().split(getPattern(5))[0])) {
 			act.add("edu_higher");
 		}
-		if (eduOther.contains(ft.getAttribute(ATTR_NAME).toString().split("(?<=\\G.{5})")[0])) {
+		if (eduOther.contains(ft.getAttribute(ATTR_NAME).toString().split(getPattern(5))[0])) {
 			act.add("edu_other");
 		}
 		if (ft.getAttribute(ATTR_NAME).toString().startsWith("62")) {
@@ -200,6 +200,10 @@ public class CreateMATSimFacilities implements MATSimAppCommand {
 			act.add("dining");
 		}
 		return act;
+	}
+
+	private String getPattern(Integer index) {
+		return "(?<=\\G.{" + index + "})";
 	}
 
 	/**
