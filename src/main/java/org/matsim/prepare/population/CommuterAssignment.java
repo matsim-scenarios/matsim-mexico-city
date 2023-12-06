@@ -1,6 +1,7 @@
 package org.matsim.prepare.population;
 
 import it.unimi.dsi.fastutil.longs.*;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -35,14 +36,22 @@ public class CommuterAssignment {
 	private final CsvOptions csv = new CsvOptions(CSVFormat.Predefined.Default);
 	private final double sample;
 
-	public CommuterAssignment(Long2ObjectMap<SimpleFeature> zones, Path commuterPath, double sample) {
+	public CommuterAssignment(Object2ObjectMap<String, SimpleFeature> zones, Path commuterPath, double sample) {
 		this.sample = sample;
 
 		// outgoing commuters
 		this.commuter = new Long2ObjectOpenHashMap<>();
-		this.zones = zones;
+
+		Long2ObjectMap<SimpleFeature> zonesLong = new Long2ObjectOpenHashMap<>();
+		zones.entrySet().forEach(e -> zonesLong.put(Long.parseLong(e.getKey()), e.getValue()));
+		this.zones = zonesLong;
 
 		// read commuters
+		readCommuters(commuterPath);
+
+	}
+
+	private void readCommuters(Path commuterPath) {
 		try (CSVParser parser = csv.createParser(commuterPath)) {
 			for (CSVRecord row : parser) {
 				long from;
@@ -61,20 +70,19 @@ public class CommuterAssignment {
 		} catch (IOException e) {
 			throw new UncheckedIOException(e);
 		}
-
 	}
 
 	/**
 	 * Select and return a commute target.
 	 *
 	 * @param f   sampler producing target locations
-	 * @param ars origin zone
+	 * @param zoneId origin zone
 	 */
-	public ActivityFacility selectTarget(SplittableRandom rnd, long ars, double dist, Point refPoint, Sampler f) {
+	public ActivityFacility selectTarget(SplittableRandom rnd, long zoneId, double dist, Point refPoint, Sampler f) {
 
 		// Commute in same zone
-		Long2DoubleMap comms = commuter.get(ars);
-		if (!commuter.containsKey(ars) || comms.isEmpty())
+		Long2DoubleMap comms = commuter.get(zoneId);
+		if (!commuter.containsKey(zoneId) || comms.isEmpty())
 			return null;
 
 		LongList entries;

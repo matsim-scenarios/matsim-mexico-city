@@ -1,7 +1,7 @@
 package org.matsim.prepare.population;
 
-import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.locationtech.jts.geom.Geometry;
@@ -29,6 +29,7 @@ import org.matsim.facilities.ActivityFacilities;
 import org.matsim.facilities.ActivityFacility;
 import org.matsim.facilities.FacilitiesUtils;
 import org.matsim.facilities.MatsimFacilitiesReader;
+import org.matsim.prepare.MexicoCityUtils;
 import org.matsim.run.RunMexicoCityScenario;
 import org.opengis.feature.simple.SimpleFeature;
 import picocli.CommandLine;
@@ -38,7 +39,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import static org.matsim.prepare.ExtractFacilityShp.CreateMATSimFacilities.IGNORED_LINK_TYPES;
+import static org.matsim.prepare.population.CreateMATSimFacilities.IGNORED_LINK_TYPES;
 
 @CommandLine.Command(
 	name = "init-location-choice",
@@ -49,6 +50,8 @@ public class InitLocationChoice implements MATSimAppCommand, PersonAlgorithm {
 
 	/**
 	 * Detour factor for car routes, which was determined based on sampled routes.
+	 * This is true for the MATSim Open Berlin scenario. As trips in the EOD2017 for the Mexico-city metropolitan area do not have a length attribute,
+	 * we just adopt this value here.
 	 */
 	private static final double DETOUR_FACTOR = 1.56;
 
@@ -72,7 +75,7 @@ public class InitLocationChoice implements MATSimAppCommand, PersonAlgorithm {
 	@CommandLine.Option(names = "--network", description = "Path to network file", required = true)
 	private Path networkPath;
 
-	@CommandLine.Option(names = "--sample", description = "Sample size of the population", defaultValue = "0.25")
+	@CommandLine.Option(names = "--sample", description = "Sample size of the population", defaultValue = "0.01")
 	private double sample;
 
 	@CommandLine.Option(names = "--seed", description = "Seed used to sample locations", defaultValue = "1")
@@ -81,10 +84,9 @@ public class InitLocationChoice implements MATSimAppCommand, PersonAlgorithm {
 	@CommandLine.Mixin
 	private ShpOptions shp;
 
-
 	private Map<String, STRtree> trees;
 
-	private Long2ObjectMap<SimpleFeature> zones;
+	private Object2ObjectMap<String, SimpleFeature> zones;
 
 	private CommuterAssignment commuter;
 
@@ -124,8 +126,8 @@ public class InitLocationChoice implements MATSimAppCommand, PersonAlgorithm {
 		network = NetworkUtils.createNetwork();
 		filter.filter(network, Set.of(TransportMode.car));
 
-		zones = new Long2ObjectOpenHashMap<>(shp.readFeatures().stream()
-			.collect(Collectors.toMap(ft -> Long.parseLong((String) ft.getAttribute("ARS")), ft -> ft)));
+		zones = new Object2ObjectOpenHashMap<>(shp.readFeatures().stream()
+			.collect(Collectors.toMap(ft -> ft.getAttribute("CVE_MUN1").toString(), ft -> ft)));
 
 		log.info("Read {} zones", zones.size());
 
@@ -144,7 +146,7 @@ public class InitLocationChoice implements MATSimAppCommand, PersonAlgorithm {
 
 			NavigableMap<Id<ActivityFacility>, ActivityFacility> afs = facilities.getFacilitiesForActivityType(act);
 			for (ActivityFacility af : afs.values()) {
-				STRtree index = trees.computeIfAbsent(act, k -> new STRtree());
+				STRtree index = trees.computeIfAbsent(act, noChoices -> new STRtree());
 				index.insert(MGC.coord2Point(af.getCoord()).getEnvelopeInternal(), af);
 			}
 		}
@@ -158,11 +160,11 @@ public class InitLocationChoice implements MATSimAppCommand, PersonAlgorithm {
 
 		for (int i = 0; i < k; i++) {
 
-			long seed = this.seed + i;
+			long rSeed = this.seed + i;
 
-			log.info("Generating plan {} with seed {}", i , seed);
+			log.info("Generating plan {} with seed {}", i , rSeed);
 
-			ctxs = ThreadLocal.withInitial(() -> new Context(seed));
+			ctxs = ThreadLocal.withInitial(() -> new Context(rSeed));
 			commuter = new CommuterAssignment(zones, commuterPath, sample);
 
 			Population population = PopulationUtils.readPopulation(input.toString());
@@ -237,8 +239,10 @@ public class InitLocationChoice implements MATSimAppCommand, PersonAlgorithm {
 
 					if (location == null && type.equals("work")) {
 						// sample work commute
-//						TODO: find pendent to ARS
-//						location = sampleCommute(ctx, dist, lastCoord, (long) person.getAttributes().getAttribute(MexicoCityUtils.ARS));
+						String idEntMun = person.getAttributes().getAttribute(MexicoCityUtils.ENT).toString() +
+							person.getAttributes().getAttribute(MexicoCityUtils.MUN).toString();
+
+						location = sampleCommute(ctx, dist, lastCoord, idEntMun);
 					}
 
 					if (location == null && trees.containsKey(type)) {
@@ -296,8 +300,7 @@ public class InitLocationChoice implements MATSimAppCommand, PersonAlgorithm {
 	/**
 	 * Sample work place by using commute and distance information.
 	 */
-	@Deprecated
-	private ActivityFacility sampleCommute(Context ctx, double dist, Coord refCoord, long ars) {
+	private ActivityFacility sampleCommute(Context ctx, double dist, Coord refCoord, String zoneId) {
 
 		STRtree index = trees.get("work");
 
@@ -305,12 +308,12 @@ public class InitLocationChoice implements MATSimAppCommand, PersonAlgorithm {
 
 		// Only larger distances can be commuters to other zones
 		if (dist > 3000) {
-			workPlace = commuter.selectTarget(ctx.rnd, ars, dist, MGC.coord2Point(refCoord), zone -> sampleZone(index, dist, refCoord, zone, ctx.rnd));
+			workPlace = commuter.selectTarget(ctx.rnd, Long.parseLong(zoneId), dist, MGC.coord2Point(refCoord), zone -> sampleZone(index, dist, refCoord, zone, ctx.rnd));
 		}
 
 		if (workPlace == null) {
 			// Try selecting within same zone
-			workPlace = sampleZone(index, dist, refCoord, (Geometry) zones.get(ars).getDefaultGeometry(), ctx.rnd);
+			workPlace = sampleZone(index, dist, refCoord, (Geometry) zones.get(zoneId).getDefaultGeometry(), ctx.rnd);
 		}
 
 		return workPlace;

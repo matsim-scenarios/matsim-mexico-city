@@ -9,20 +9,43 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.geotools.data.shapefile.files.ShpFileType;
+import org.geotools.data.shapefile.files.ShpFiles;
+import org.geotools.data.shapefile.shp.ShapeType;
+import org.geotools.data.shapefile.shp.ShapefileWriter;
+import org.geotools.feature.simple.SimpleFeatureBuilder;
+import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
+import org.locationtech.jts.geom.Geometry;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
+import org.matsim.api.core.v01.Scenario;
+import org.matsim.api.core.v01.TransportMode;
 import org.matsim.api.core.v01.population.*;
 import org.matsim.application.MATSimAppCommand;
 import org.matsim.application.options.CsvOptions;
+import org.matsim.application.options.ShpOptions;
+import org.matsim.core.config.Config;
+import org.matsim.core.config.ConfigUtils;
+import org.matsim.core.config.groups.PlanCalcScoreConfigGroup;
 import org.matsim.core.population.PersonUtils;
 import org.matsim.core.population.PopulationUtils;
 import org.matsim.core.population.algorithms.ParallelPersonAlgorithmUtils;
 import org.matsim.core.population.algorithms.PersonAlgorithm;
-import org.matsim.core.router.TripStructureUtils;
+import org.matsim.core.router.*;
+import org.matsim.core.router.speedy.SpeedyALTFactory;
+import org.matsim.core.router.util.*;
+import org.matsim.core.scenario.ScenarioUtils;
+import org.matsim.core.utils.gis.ShapeFileWriter;
+import org.matsim.facilities.*;
+import org.matsim.prepare.MexicoCityUtils;
+import org.matsim.run.RunMexicoCityScenario;
+import org.opengis.feature.simple.SimpleFeature;
 import picocli.CommandLine;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -54,11 +77,25 @@ public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 	private Path personsPath;
 	@CommandLine.Option(names = "--activities", description = "Path to activity table", required = true)
 	private Path activityPath;
+	@CommandLine.Option(names = "--network", description = "Path to input network for routing", required = true)
+	private Path networkPath;
+
+	@CommandLine.Option(names = "--transit-schedule", description = "Path to input transit schedule for pt routing", required = true)
+	private Path transitSchedulePath;
 	@CommandLine.Option(names = "--seed", description = "Seed used to sample plans", defaultValue = "1")
 	private long seed;
+	@CommandLine.Mixin
+	private ShpOptions shp = new ShpOptions();
 	private ThreadLocal<Context> ctxs;
 
 	private PopulationFactory factory;
+	private ActivityFacilitiesFactory fac = FacilitiesUtils.createActivityFacilities().getFactory();
+	private LeastCostPathCalculatorFactory leastCostPathCalculatorFactory = new SpeedyALTFactory();
+
+	private TravelDisutility travelDisutility = TravelDisutilityUtils.createFreespeedTravelTimeAndDisutility(ConfigUtils.addOrGetModule(new Config(), PlanCalcScoreConfigGroup.class));
+	private TravelTime travelTime = TravelTimeUtils.createFreeSpeedTravelTime();
+
+	private Map<String, RoutingModule> routingModules = new HashMap<>();
 
 	public static void main(String[] args) {
 		new RunActivitySampling().execute(args);
@@ -67,7 +104,22 @@ public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 	@Override
 	public Integer call() throws Exception {
 
-		Population population = PopulationUtils.readPopulation(input.toString());
+		if (shp.getShapeFile() == null) {
+			log.error("Shape file with districts for EOD2017 is required.");
+			return 2;
+		}
+
+		Config config = ConfigUtils.createConfig();
+		config.plans().setInputFile(input.toString());
+		config.network().setInputFile(networkPath.toString());
+		config.transit().setTransitScheduleFile(transitSchedulePath.toString());
+		config.global().setCoordinateSystem(RunMexicoCityScenario.CRS);
+
+//		Network network = NetworkUtils.readNetwork(networkPath.toString());
+
+		Scenario scenario = ScenarioUtils.loadScenario(config);
+
+		LeastCostPathCalculator calculator = leastCostPathCalculatorFactory.createPathCalculator(scenario.getNetwork(), travelDisutility, travelTime);
 
 		try (CSVParser parser = csv.createParser(personsPath)) {
 			buildSubgroups(parser);
@@ -78,20 +130,54 @@ public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 		}
 
 		ctxs = ThreadLocal.withInitial(() -> new Context(new SplittableRandom(seed)));
-		factory = population.getFactory();
+//		factory = scenario.getPopulation().getFactory();
 
-		ParallelPersonAlgorithmUtils.run(population, 8, this);
+//TODO: delete testPop
 
-		PopulationUtils.writePopulation(population, output.toString());
+		Population testPop = PopulationUtils.createPopulation(config);
+		Person testPerson = testPop.getFactory().createPerson(Id.createPersonId("test"));
+		testPerson.getAttributes().putAttribute("age", 35);
+		testPerson.getAttributes().putAttribute("sex", "f");
+		testPerson.getAttributes().putAttribute("employed", true);
+		testPerson.getAttributes().putAttribute("home_x", 1752045.4);
+		testPerson.getAttributes().putAttribute("home_y", 2184313.44);
+
+		testPop.addPerson(testPerson);
+
+		factory = testPop.getFactory();
+
+
+		TeleportationRoutingModule walkRouter = new TeleportationRoutingModule(TransportMode.walk, scenario, 1.0555556, 1.3);
+		NetworkRoutingModule carRouter = new NetworkRoutingModule(TransportMode.car, factory, scenario.getNetwork(), calculator);
+
+		routingModules.put(TransportMode.car, carRouter);
+		routingModules.put(TransportMode.ride, carRouter);
+		routingModules.put(TransportMode.motorcycle, carRouter);
+		routingModules.put(TransportMode.other, carRouter);
+		routingModules.put(TransportMode.bike, new TeleportationRoutingModule(TransportMode.bike, scenario, 3.1388889, 1.3));
+		routingModules.put(TransportMode.walk, walkRouter);
+		// pt is routed as car because:
+//		1) There is no gtfs data for many pt modes such as colectivo / microbus.., which make up for 37% of the city's modal split
+//		2) as there is no gtfs data, a routing via gtfs or pt mode for e.g. colectivo would lead to incorrect results
+//		3) 70% of the pt modal share are modes, which operate on the normal street network
+//		source for modal shares: https://semovi.cdmx.gob.mx/storage/app/media/diagnostico-tecnico-de-movilidad-pim.pdf
+		routingModules.put(TransportMode.pt, carRouter);
+
+
+//		ParallelPersonAlgorithmUtils.run(scenario.getPopulation(), 8, this);
+		ParallelPersonAlgorithmUtils.run(testPop, 8, this);
+
+//		PopulationUtils.writePopulation(scenario.getPopulation(), output.toString());
+		PopulationUtils.writePopulation(testPop, output.toString());
 
 		double atHome = 0;
-		for (Person person : population.getPersons().values()) {
+		for (Person person : scenario.getPopulation().getPersons().values()) {
 			List<Leg> legs = TripStructureUtils.getLegs(person.getSelectedPlan());
 			if (legs.isEmpty())
 				atHome++;
 		}
 
-		int size = population.getPersons().size();
+		int size = scenario.getPopulation().getPersons().size();
 		double mobile = (size - atHome) / size;
 
 		log.info("Processed {} persons, mobile persons: {}%", size, 100 * mobile);
@@ -187,7 +273,7 @@ public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 		if (age < 18 || age > 65)
 			employed = null;
 
-		int regionType = (int) person.getAttributes().getAttribute(MexicoCityUtils.REGION_TYPE);
+		int regionType = 1;
 
 		// Region types have been reduced to 1 and 3
 		if (regionType != 1)
@@ -331,6 +417,17 @@ public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 
 			double legDist = Double.parseDouble(act.get("leg_dist"));
 
+			if (act.get("dep_district").equals("999") || act.get("arr_district").equals("999")) {
+				//do not route if district id is unknown = 999
+			} else {
+				try {
+					legDist = getDistFromRoutedLeg(rnd, act, legDuration, plan);
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			}
+
+
 			if (i > 0) {
 				a.getAttributes().putAttribute("orig_dist", legDist);
 				a.getAttributes().putAttribute("orig_duration", legDuration);
@@ -379,6 +476,124 @@ public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 		}
 
 		return plan;
+	}
+
+	private Double getDistFromRoutedLeg(SplittableRandom rnd, CSVRecord act, double legDuration, Plan plan) throws IOException {
+
+		Map<String, Coord> district2Coord = new HashMap<>();
+
+		String depDistrict = act.get("dep_district");
+		String arrDistrict = act.get("arr_district");
+
+		district2Coord.put(depDistrict, null);
+		district2Coord.put(arrDistrict, null);
+
+		Coord randomDepCoord = null;
+		Coord randomArrCoord = null;
+
+		AtomicReference<Double> routedDuration = new AtomicReference<>(null);
+		AtomicReference<Double> routedDistance = new AtomicReference<>(null);
+
+		while (routedDuration.get() == null || Math.abs(routedDuration.get() - legDuration) >= 300) {
+
+			for (Map.Entry entry: district2Coord.entrySet()) {
+				entry.setValue(generateRandomCoord(rnd, entry.getKey().toString()));
+			}
+
+			String routingMode = act.get("leg_mode");
+
+			ActivityFacility depFac = fac.createActivityFacility(Id.create(depDistrict, ActivityFacility.class), district2Coord.get(depDistrict));
+			ActivityFacility arrFac = fac.createActivityFacility(Id.create(arrDistrict, ActivityFacility.class), district2Coord.get(arrDistrict));
+
+			List<? extends PlanElement> planElements = routingModules.get(routingMode).calcRoute(DefaultRoutingRequest.withoutAttributes(depFac, arrFac,
+				Double.parseDouble(act.get("departure")), plan.getPerson()));
+
+			planElements.stream().filter(planElement -> planElement instanceof Leg).filter(leg -> ((Leg) leg).getMode().equals(routingMode)).forEach(leg -> {
+				routedDistance.set(((Leg) leg).getRoute().getDistance());
+				routedDuration.set(((Leg) leg).getTravelTime().seconds());
+			});
+		}
+		return routedDistance.get();
+	}
+
+	private Coord generateRandomCoord(SplittableRandom rnd, String districtNumber) throws IOException {
+		AtomicReference<Double> randomX = new AtomicReference<>();
+		AtomicReference<Double> randomY = new AtomicReference<>();
+
+		if (districtNumber.equals("888")) {
+//			888 -> outside of metropolitan area
+//			buffer of 150km
+			Geometry outsideZMVM = shp.getGeometry().buffer(150000).difference(shp.getGeometry());
+
+//			TODO: remove this after test of written shp file
+//			ShapefileWriter writer =  new ShapefileWriter(FileChannel.open(Path.of("C:/Users/Simon/Desktop/wd/2023-11-22/outsideZMVM.shp")),
+//				FileChannel.open(Path.of("C:/Users/Simon/Desktop/wd/2023-11-22/outsideZMVM.shx")));
+
+//			writer.write(outsideZMVM.getFactory().createGeometryCollection(), ShapeType.POLYGON);
+//			writer.writeGeometry(outsideZMVM);
+//			writer.close();
+
+			SimpleFeatureTypeBuilder typeBuilder = new SimpleFeatureTypeBuilder();
+
+			SimpleFeatureBuilder builder = new SimpleFeatureBuilder(typeBuilder.buildFeatureType());
+
+			SimpleFeature feature = builder.buildFeature("12");
+
+			feature.setDefaultGeometry(outsideZMVM);
+
+			new ShapeFileWriter().writeGeometries(Collections.singleton(feature), "C:/Users/Simon/Desktop/wd/2023-11-22/outsideZMVM.shp");
+
+			randomX.set(rnd.nextDouble(outsideZMVM.getEnvelopeInternal().getMinX(), outsideZMVM.getEnvelopeInternal().getMaxX()));
+			randomY.set(rnd.nextDouble(outsideZMVM.getEnvelopeInternal().getMinY(), outsideZMVM.getEnvelopeInternal().getMaxY()));
+		} else {
+
+
+			Geometry outsideZMVM = shp.getGeometry().buffer(150000).difference(shp.getGeometry());
+
+			ShpFiles shpFiles = new ShpFiles(":/Users/Simon/Desktop/wd/2023-11-22/outsideZMVM.shp");
+
+
+
+
+
+//			TODO: remove this after test of written shp file
+//			ShapefileWriter writer =  new ShapefileWriter(FileChannel.open(Path.of("C:/Users/Simon/Desktop/wd/2023-11-22/outsideZMVM.shp")),
+//				FileChannel.open(Path.of("C:/Users/Simon/Desktop/wd/2023-11-22/outsideZMVM.shx")));
+
+			ShapefileWriter writer =  new ShapefileWriter(shpFiles.getStorageFile(ShpFileType.SHP).getWriteChannel(),
+				shpFiles.getStorageFile(ShpFileType.SHX).getWriteChannel());
+
+//			writer.write(outsideZMVM.getFactory().createGeometryCollection(), ShapeType.POLYGON);
+			writer.writeHeaders(outsideZMVM.getEnvelopeInternal(), ShapeType.POLYGON, 1, 1);
+			writer.writeGeometry(outsideZMVM);
+			writer.close();
+
+//			SimpleFeatureTypeBuilder typeBuilder = new SimpleFeatureTypeBuilder();
+//
+//			SimpleFeatureType type = typeBuilder.buildFeatureType();
+//			typeBuilder.
+//
+//			SimpleFeatureBuilder builder = new SimpleFeatureBuilder();
+//
+//			SimpleFeature simpleFeature = builder.buildFeature("12");
+//
+//			simpleFeature.setDefaultGeometry(outsideZMVM);
+//
+//			new ShapeFileWriter().writeGeometries(Collections.singleton(simpleFeature), "C:/Users/Simon/Desktop/wd/2023-11-22/outsideZMVM.shp");
+
+
+
+//			generate random coord based on district of zmvm
+			shp.readFeatures().stream().filter(feature ->
+				feature.getAttribute("Distrito").equals(districtNumber)).forEach(feature -> {
+				randomX.set(rnd.nextDouble(((Geometry) feature.getDefaultGeometry()).getEnvelopeInternal().getMinX(),
+					((Geometry) feature.getDefaultGeometry()).getEnvelopeInternal().getMaxX()));
+				randomY.set(rnd.nextDouble(((Geometry) feature.getDefaultGeometry()).getEnvelopeInternal().getMinY(),
+					((Geometry) feature.getDefaultGeometry()).getEnvelopeInternal().getMaxY()));
+			});
+
+		}
+		return new Coord(randomX.get(), randomY.get());
 	}
 
 	/**
