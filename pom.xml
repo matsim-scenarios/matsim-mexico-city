@@ -14,7 +14,7 @@
 		<!-- snapshot == not recommended: rather use PR-labelled release!-->
 		<!-- FIXME: Decide on version -->
 <!--		<version>15.0-SNAPSHOT</version>-->
-		<version>16.0-PR2653</version>
+		<version>16.0-PR2673</version>
 	</parent>
 
 	<modelVersion>4.0.0</modelVersion>
@@ -147,9 +147,15 @@
 			<artifactId>osm4j-geometry</artifactId>
 			<version>1.2.0</version>
 		</dependency>
+		<dependency>
+			<groupId>org.optaplanner</groupId>
+			<artifactId>optaplanner-core</artifactId>
+			<version>9.41.0.Final</version>
+		</dependency>
 	</dependencies>
 
 	<build>
+<!--		<finalName>matsim-mexico-city-1.x-SNAPSHOT-c43da3e-dirty-ptRaptor</finalName>-->
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
