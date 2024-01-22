@@ -9,15 +9,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * class copied from
- * https://github.com/matsim-scenarios/matsim-berlin/blob/6.x/src/main/java/org/matsim/prepare/population/
- * -sme0923
- **/
-
-/**
  * Distribution with fixed probabilities for each entry.
  *
  * @param <T> type of the produced value.
+ * class copied from
+ * https://github.com/matsim-scenarios/matsim-berlin/blob/6.x/src/main/java/org/matsim/prepare/population/
+ * -sme0923
  */
 public class EnumeratedAttributeDistribution<T> implements AttributeDistribution<T> {
 

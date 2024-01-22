@@ -5,7 +5,7 @@ V := v1.0
 CRS := EPSG:4485
 
 MEMORY ?= 20G
-JAR := matsim-mexico-city-1.x-SNAPSHOT-40ae115-dirty.jar
+JAR := matsim-mexico-city-1.x-SNAPSHOT-71a272f-dirty.jar
 
 ifndef SUMO_HOME
 	export SUMO_HOME := $(abspath ../../sumo-1.15.0/)
@@ -114,22 +114,49 @@ input/mexico-city-static-1pct.plans.xml.gz: input/first-population-cdmx-only-1pc
 	$(sc) prepare merge-populations $^\
 	 --output $@
 
-input/mexico-city-activities-1pct.plans.xml.gz: input/mexico-city-static-1pct.plans.xml.gz
-	$(sc) prepare activity-sampling --seed 1 --input $< --output $@ --persons #TODO --activities #TODO
+# the activites and persons table for this class are created by sampling survey data.
+# this is done via matsim-python-tools: https://github.com/matsim-vsp/matsim-python-tools/blob/mexico-city/matsim/scenariogen/data/run_extract_activities.py
+input/mexico-city-activities-1pct.test.plans.xml.gz: input/mexico-city-static-1pct.plans.xml.gz
+	$(sc) prepare activity-sampling --input $<\
+		--output $@\
+		--persons input/table-persons.csv.gz\
+  		--activities input/table-activities.csv.gz\
+  		--network input/v1.0/mexico-city-v1.0-network.xml.gz\
+  		--shp ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/distritos_eod2017_unam/DistritosEODHogaresZMVM2017_utm12n.shp
 
-input/berlin-initial-1pct.plans.xml.gz: input/mexico-city-activities-1pct.plans.xml.gz #TODO-facilities.xml.gz input/v1.0/mexico-city-v1.0-network.xml.gz
+input/v1.0/mexico-city-v1.0-facilities.xml.gz: input/v1.0/mexico-city-v1.0-network.xml.gz ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/economy_locations_zmvm_2017/economy_locations_zmvm_2017_utm12n.shp
+	$(sc) prepare facilities\
+		--network $<\
+		--shp $(word 2,$^)\
+		--output $@
+
+input/commuter.csv: ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/data-input-eod2017-bundled/tviaje.csv
+	$(sc) prepare create-commute-relations\
+		--od-survey $<\
+		--zmvm-shp ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/zmvm_2010/zmvm_2010_utm12n.shp\
+		--survey-shp ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/distritos_eod2017_unam/DistritosEODHogaresZMVM2017_utm12n.shp\
+		--output $@
+
+input/mexico-city-initial-1pct.plans.xml.gz: input/mexico-city-activities-1pct.plans.xml.gz input/v1.0/mexico-city-v1.0-facilities.xml.gz input/v1.0/mexico-city-v1.0-network.xml.gz
 	$(sc) prepare init-location-choice\
-	 --input $<\
-	 --output $@\
-	 --facilities $(word 2,$^)\
-	 --network $(word 3,$^)\
-	 --shp # TODO$(germany)/vg5000/vg5000_ebenen_0101/VG5000_GEM.shp\
-	 --commuter #TODO $(germany)/regionalstatistik/commuter.csv\
+	 	--input $<\
+	 	--output $@\
+	 	--facilities $(word 2,$^)\
+	 	--network $(word 3,$^)\
+	 	--shp ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/zmvm_2010/zmvm_2010_utm12n.shp\
+	 	--commuter input/commuter.csv\
 
-	# For debugging and visualization
+# For debugging and visualization
 	$(sc) prepare downsample-population $@\
 		 --sample-size 0.01\
-		 --samples 0.01\
+		 --samples 0.001\
+
+# TODO: prepare population class for adding income distr -> see LeipzigScenario
+
+
+
+
+ ####################################### NOT SURE IF NEEDED: ##############################################################
 
 input/$V/prepare-25pct.plans.xml.gz:
 	$(sc) prepare trajectory-to-plans\

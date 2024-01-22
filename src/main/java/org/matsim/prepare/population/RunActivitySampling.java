@@ -9,13 +9,7 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.geotools.data.shapefile.files.ShpFileType;
-import org.geotools.data.shapefile.files.ShpFiles;
-import org.geotools.data.shapefile.shp.ShapeType;
-import org.geotools.data.shapefile.shp.ShapefileWriter;
-import org.geotools.feature.simple.SimpleFeatureBuilder;
-import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
-import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.*;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
@@ -26,25 +20,22 @@ import org.matsim.application.options.CsvOptions;
 import org.matsim.application.options.ShpOptions;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
-import org.matsim.core.config.groups.PlanCalcScoreConfigGroup;
 import org.matsim.core.population.PersonUtils;
 import org.matsim.core.population.PopulationUtils;
 import org.matsim.core.population.algorithms.ParallelPersonAlgorithmUtils;
 import org.matsim.core.population.algorithms.PersonAlgorithm;
 import org.matsim.core.router.*;
-import org.matsim.core.router.speedy.SpeedyALTFactory;
-import org.matsim.core.router.util.*;
 import org.matsim.core.scenario.ScenarioUtils;
-import org.matsim.core.utils.gis.ShapeFileWriter;
+import org.matsim.core.utils.geometry.geotools.MGC;
 import org.matsim.facilities.*;
 import org.matsim.prepare.MexicoCityUtils;
 import org.matsim.run.RunMexicoCityScenario;
 import org.opengis.feature.simple.SimpleFeature;
 import picocli.CommandLine;
-
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -62,13 +53,6 @@ import java.util.stream.Stream;
 public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 
 	private static final Logger log = LogManager.getLogger(RunActivitySampling.class);
-	private final CsvOptions csv = new CsvOptions(CSVFormat.Predefined.Default);
-	private final Map<Key, IntList> groups = new HashMap<>();
-	private final Int2ObjectMap<CSVRecord> persons = new Int2ObjectOpenHashMap<>();
-	/**
-	 * Maps person index to list of activities.
-	 */
-	private final Int2ObjectMap<List<CSVRecord>> activities = new Int2ObjectOpenHashMap<>();
 	@CommandLine.Option(names = "--input", description = "Path to input population", required = true)
 	private Path input;
 	@CommandLine.Option(names = "--output", description = "Output path for population", required = true)
@@ -77,25 +61,29 @@ public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 	private Path personsPath;
 	@CommandLine.Option(names = "--activities", description = "Path to activity table", required = true)
 	private Path activityPath;
-	@CommandLine.Option(names = "--network", description = "Path to input network for routing", required = true)
-	private Path networkPath;
-
-	@CommandLine.Option(names = "--transit-schedule", description = "Path to input transit schedule for pt routing", required = true)
-	private Path transitSchedulePath;
 	@CommandLine.Option(names = "--seed", description = "Seed used to sample plans", defaultValue = "1")
 	private long seed;
+	@CommandLine.Option(names = "--network", description = "Path to network file", required = true)
+	private Path networkPath;
 	@CommandLine.Mixin
 	private ShpOptions shp = new ShpOptions();
-	private ThreadLocal<Context> ctxs;
 
+	public static final String NEVER = "never";
+	public static final String ALWAYS = "always";
+	public static final String DIST_ATTR = "orig_dist";
+	private final CsvOptions csv = new CsvOptions(CSVFormat.Predefined.Default);
+	private final Map<Key, IntList> groups = new HashMap<>();
+	private final Int2ObjectMap<CSVRecord> persons = new Int2ObjectOpenHashMap<>();
+	/**
+	 * Maps person index to list of activities.
+	 */
+	private final Int2ObjectMap<List<CSVRecord>> activities = new Int2ObjectOpenHashMap<>();
+	private ThreadLocal<Context> ctxs;
 	private PopulationFactory factory;
 	private ActivityFacilitiesFactory fac = FacilitiesUtils.createActivityFacilities().getFactory();
-	private LeastCostPathCalculatorFactory leastCostPathCalculatorFactory = new SpeedyALTFactory();
-
-	private TravelDisutility travelDisutility = TravelDisutilityUtils.createFreespeedTravelTimeAndDisutility(ConfigUtils.addOrGetModule(new Config(), PlanCalcScoreConfigGroup.class));
-	private TravelTime travelTime = TravelTimeUtils.createFreeSpeedTravelTime();
-
 	private Map<String, RoutingModule> routingModules = new HashMap<>();
+	private List<SimpleFeature> features = new ArrayList<>();
+	private Map<Id<Person>, Person> agentsWithoutSubgroup = new HashMap<>();
 
 	public static void main(String[] args) {
 		new RunActivitySampling().execute(args);
@@ -109,80 +97,94 @@ public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 			return 2;
 		}
 
+		features.addAll(shp.readFeatures());
+
 		Config config = ConfigUtils.createConfig();
 		config.plans().setInputFile(input.toString());
-		config.network().setInputFile(networkPath.toString());
-		config.transit().setTransitScheduleFile(transitSchedulePath.toString());
 		config.global().setCoordinateSystem(RunMexicoCityScenario.CRS);
-
-//		Network network = NetworkUtils.readNetwork(networkPath.toString());
+		config.network().setInputFile(networkPath.toString());
+//		directWalkFactor set to high value to avoid creation of walk leg instead of pt leg when using swissRailRaptorRoutingModule
+		config.transitRouter().setDirectWalkFactor(1000.);
 
 		Scenario scenario = ScenarioUtils.loadScenario(config);
 
-		LeastCostPathCalculator calculator = leastCostPathCalculatorFactory.createPathCalculator(scenario.getNetwork(), travelDisutility, travelTime);
-
 		try (CSVParser parser = csv.createParser(personsPath)) {
+			log.info("Parsing persons sample data from {}. Due to the size of the dataset this may take a while.", personsPath);
 			buildSubgroups(parser);
 		}
 
 		try (CSVParser parser = csv.createParser(activityPath)) {
+			log.info("Parsing activities sample data from {}. Due to the size of the dataset this may take a while.", activityPath);
 			readActivities(parser);
 		}
 
 		ctxs = ThreadLocal.withInitial(() -> new Context(new SplittableRandom(seed)));
-//		factory = scenario.getPopulation().getFactory();
 
-//TODO: delete testPop
+		Population population = scenario.getPopulation();
 
-		Population testPop = PopulationUtils.createPopulation(config);
-		Person testPerson = testPop.getFactory().createPerson(Id.createPersonId("test"));
-		testPerson.getAttributes().putAttribute("age", 35);
-		testPerson.getAttributes().putAttribute("sex", "f");
-		testPerson.getAttributes().putAttribute("employed", true);
-		testPerson.getAttributes().putAttribute("home_x", 1752045.4);
-		testPerson.getAttributes().putAttribute("home_y", 2184313.44);
+		factory = population.getFactory();
 
-		testPop.addPerson(testPerson);
+		//determine home district of EOD2017 districts for each person if not existent
+		population.getPersons().values().stream().findAny().ifPresent(person -> {
+			if (person.getAttributes().getAttribute(MexicoCityUtils.DISTR) == null) {
+				AssignODSurveyDistricts assign = new AssignODSurveyDistricts(population, shp);
+				assign.assignDistricts();
+			}
+		});
 
-		factory = testPop.getFactory();
+		prepareRoutingModules(scenario);
 
+		ParallelPersonAlgorithmUtils.run(population, 12, this);
 
-		TeleportationRoutingModule walkRouter = new TeleportationRoutingModule(TransportMode.walk, scenario, 1.0555556, 1.3);
-		NetworkRoutingModule carRouter = new NetworkRoutingModule(TransportMode.car, factory, scenario.getNetwork(), calculator);
+		ctxs.remove();
 
-		routingModules.put(TransportMode.car, carRouter);
-		routingModules.put(TransportMode.ride, carRouter);
-		routingModules.put(TransportMode.motorcycle, carRouter);
-		routingModules.put(TransportMode.other, carRouter);
-		routingModules.put(TransportMode.bike, new TeleportationRoutingModule(TransportMode.bike, scenario, 3.1388889, 1.3));
-		routingModules.put(TransportMode.walk, walkRouter);
-		// pt is routed as car because:
-//		1) There is no gtfs data for many pt modes such as colectivo / microbus.., which make up for 37% of the city's modal split
-//		2) as there is no gtfs data, a routing via gtfs or pt mode for e.g. colectivo would lead to incorrect results
-//		3) 70% of the pt modal share are modes, which operate on the normal street network
-//		source for modal shares: https://semovi.cdmx.gob.mx/storage/app/media/diagnostico-tecnico-de-movilidad-pim.pdf
-		routingModules.put(TransportMode.pt, carRouter);
-
-
-//		ParallelPersonAlgorithmUtils.run(scenario.getPopulation(), 8, this);
-		ParallelPersonAlgorithmUtils.run(testPop, 8, this);
-
-//		PopulationUtils.writePopulation(scenario.getPopulation(), output.toString());
-		PopulationUtils.writePopulation(testPop, output.toString());
+		PopulationUtils.writePopulation(population, output.toString());
 
 		double atHome = 0;
-		for (Person person : scenario.getPopulation().getPersons().values()) {
+		for (Person person : population.getPersons().values()) {
 			List<Leg> legs = TripStructureUtils.getLegs(person.getSelectedPlan());
 			if (legs.isEmpty())
 				atHome++;
 		}
 
-		int size = scenario.getPopulation().getPersons().size();
+		int size = population.getPersons().size();
 		double mobile = (size - atHome) / size;
 
 		log.info("Processed {} persons, mobile persons: {}%", size, 100 * mobile);
 
+		double noSubgroupShare = Double.valueOf(agentsWithoutSubgroup.size()) / size;
+
+		if (noSubgroupShare <= 0.05) {
+			log.warn("For {} % of the population no subgroup based on the survey data could be found. " +
+				"{} agents are affected:", noSubgroupShare*100, agentsWithoutSubgroup.size());
+			agentsWithoutSubgroup.keySet().stream().forEach(log::warn);
+		} else {
+			log.error("For {} % of the population no subgroup based on the survey data could be found. " +
+				"Please check your survey data and/or population.", Math.round(noSubgroupShare*100));
+			return 2;
+		}
 		return 0;
+	}
+
+	private void prepareRoutingModules(Scenario scenario) {
+		TeleportationRoutingModule walkRouter = new TeleportationRoutingModule(TransportMode.walk, scenario, 1.0555556, 1.3);
+
+//		according to INRIX traffic scorecard report 2022 -> downtown avg speed cdmx 12mph -> 19.3 kmh
+		double avgCarSpeed = 12 * 1.609344 / 3.6;
+		TeleportationRoutingModule carRouter = new TeleportationRoutingModule(TransportMode.car, scenario, avgCarSpeed, 1.3);
+		TeleportationRoutingModule bikeRouter = new TeleportationRoutingModule(TransportMode.bike, scenario, 3.1388889, 1.3);
+//		avg pt speed according to cdmx government: 17kmh https://semovi.cdmx.gob.mx/storage/app/media/diagnostico-tecnico-de-movilidad-pim.pdf
+		TeleportationRoutingModule ptRouter = new TeleportationRoutingModule(TransportMode.pt, scenario, 17 / 3.6, 1.3);
+
+		routingModules.put(TransportMode.pt, ptRouter);
+		routingModules.put(TransportMode.car, carRouter);
+		routingModules.put(TransportMode.ride, carRouter);
+		routingModules.put(TransportMode.motorcycle, carRouter);
+		routingModules.put(TransportMode.other, carRouter);
+		routingModules.put(TransportMode.bike, bikeRouter);
+		routingModules.put(TransportMode.walk, walkRouter);
+//		as of 20.12.23 -> colectivo routed separate from "normal" pt, as teleported mode with bike speed -> assumption
+		routingModules.put("colectivo", bikeRouter);
 	}
 
 	/**
@@ -190,63 +192,61 @@ public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 	 */
 	private void buildSubgroups(CSVParser csv) {
 
-		int i = 0;
+		AtomicInteger i = new AtomicInteger();
 
-		for (CSVRecord r : csv) {
+		csv.stream().forEach(r -> {
 
 			int idx = Integer.parseInt(r.get("idx"));
-			int regionType = Integer.parseInt(r.get("region_type"));
-			String gender = r.get("gender");
-			String employment = r.get("employment");
-			int age = Integer.parseInt(r.get("age"));
 
-			Stream<Key> keys = createKey(gender, age, regionType, employment);
-			keys.forEach(key -> groups.computeIfAbsent(key, (k) -> new IntArrayList()).add(idx));
+			createKey(r.get("gender"), Integer.parseInt(r.get("age")), Integer.parseInt(r.get("region_type")), r.get("employment"), r.get("home_district"))
+				.forEach(key -> groups.computeIfAbsent(key, k -> new IntArrayList()).add(idx));
+
 			persons.put(idx, r);
-			i++;
-		}
+			i.getAndIncrement();
+		});
 
-		log.info("Read {} persons from csv.", i);
+		log.info("Read {} persons from csv.", i.get());
 	}
 
 	private void readActivities(CSVParser csv) {
 
-		int currentId = -1;
-		List<CSVRecord> current = null;
+		AtomicInteger currentId = new AtomicInteger(-1);
+		final List<CSVRecord>[] current = new List[]{null};
 
-		int i = 0;
-		for (CSVRecord r : csv) {
+		AtomicInteger i = new AtomicInteger();
 
-			int pId = Integer.parseInt(r.get("p_id"));
+		csv.stream().forEach(r -> {
+			int pIdx = Integer.parseInt(r.get("p_index"));
 
-			if (pId != currentId) {
-				if (current != null)
-					activities.put(currentId, current);
+			if (pIdx != currentId.get()) {
+				if (current[0] != null) {
+					activities.put(currentId.get(), new ArrayList<>(current[0]));
+				}
 
-				currentId = pId;
-				current = new ArrayList<>();
+				currentId.set(pIdx);
+				current[0] = new ArrayList<>();
 			}
 
-			current.add(r);
-			i++;
+			current[0].add(r);
+			i.getAndIncrement();
+		});
+
+		if (current[0] != null && !current[0].isEmpty()) {
+			activities.put(currentId.get(), current[0]);
 		}
 
-		if (current != null && !current.isEmpty()) {
-			activities.put(currentId, current);
-		}
-
-		log.info("Read {} activities for {} persons", i, activities.size());
+		log.info("Read {} activities for {} persons", i.get(), activities.size());
 	}
 
-	private Stream<Key> createKey(String gender, int age, int regionType, String employment) {
+	private Stream<Key> createKey(String gender, int age, int regionType, String employment, String homeDistrict) {
 		if (age < 6) {
-			return IntStream.rangeClosed(0, 5).mapToObj(i -> new Key(null, i, regionType, null));
+			return IntStream.rangeClosed(0, 5).mapToObj(i -> new Key(null, i, regionType, null, homeDistrict));
 		}
 		if (age <= 10) {
-			return IntStream.rangeClosed(6, 10).mapToObj(i -> new Key(null, i, regionType, null));
+			return IntStream.rangeClosed(6, 10).mapToObj(i -> new Key(null, i, regionType, null, homeDistrict));
 		}
 		if (age < 18) {
-			return IntStream.rangeClosed(11, 18).mapToObj(i -> new Key(gender, i, regionType, null));
+			return IntStream.rangeClosed(11, 18).mapToObj(i -> new Key(gender, i, regionType, null, homeDistrict));
 		}
 
 		Boolean isEmployed = age > 65 ? null : !employment.equals("unemployed");
@@ -258,8 +258,7 @@ public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 			min = Math.max(66, age - 10);
 			max = Math.min(99, age + 10);
 		}
-
-		return IntStream.rangeClosed(min, max).mapToObj(i -> new Key(gender, i, regionType, isEmployed));
+		return IntStream.rangeClosed(min, max).mapToObj(i -> new Key(gender, i, regionType, isEmployed, homeDistrict));
 	}
 
 	private Key createKey(Person person) {
@@ -276,10 +275,10 @@ public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 		int regionType = 1;
 
 		// Region types have been reduced to 1 and 3
-		if (regionType != 1)
+		if (!person.getAttributes().getAttribute(MexicoCityUtils.ENT).equals("09")) {
 			regionType = 3;
-
-		return new Key(gender, age, regionType, employed);
+		}
+		return new Key(gender, age, regionType, employed, person.getAttributes().getAttribute(MexicoCityUtils.DISTR).toString());
 	}
 
 	@Override
@@ -291,8 +290,11 @@ public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 
 		IntList subgroup = groups.get(key);
 		if (subgroup == null) {
-			log.error("No subgroup found for key {}", key);
-			throw new IllegalStateException("Invalid entry");
+//			here, no runtime is thrown anymore. Instead, after processing all persons,
+//			it is checked whether the no of persons without subgroup exceeds 5% of total population size. -sme0124
+			log.warn("No subgroup found for key {}", key);
+			agentsWithoutSubgroup.putIfAbsent(person.getId(), person);
+			return;
 		}
 
 		if (subgroup.size() < 30) {
@@ -302,11 +304,11 @@ public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 		int idx = subgroup.getInt(rnd.nextInt(subgroup.size()));
 		CSVRecord row = persons.get(idx);
 
-		PersonUtils.setCarAvail(person, row.get("car_avail").equals("True") ? "always" : "never");
+		PersonUtils.setCarAvail(person, row.get("car_avail").equals("True") ? ALWAYS : NEVER);
 		PersonUtils.setLicence(person, row.get("driving_license").toLowerCase());
 
-		person.getAttributes().putAttribute(MexicoCityUtils.BIKE_AVAIL, row.get("bike_avail").equals("True") ? "always" : "never");
-		person.getAttributes().putAttribute(MexicoCityUtils.PT_ABO_AVAIL, row.get("pt_abo_avail").equals("True") ? "always" : "never");
+		person.getAttributes().putAttribute(MexicoCityUtils.BIKE_AVAIL, row.get("bike_avail").equals("True") ? ALWAYS : NEVER);
+		person.getAttributes().putAttribute(MexicoCityUtils.PT_ABO_AVAIL, row.get("pt_abo_avail").equals("True") ? ALWAYS : NEVER);
 
 		person.getAttributes().putAttribute(MexicoCityUtils.EMPLOYMENT, row.get("employment"));
 		person.getAttributes().putAttribute(MexicoCityUtils.RESTRICTED_MOBILITY, row.get("restricted_mobility").equals("True"));
@@ -320,16 +322,17 @@ public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 		switch (mobile.toLowerCase()) {
 
 			case "true" -> {
-				List<CSVRecord> activities = this.activities.get(idx);
+				List<CSVRecord> acts = this.activities.get(idx);
 
-				if (activities == null)
+				if (acts == null)
 					throw new AssertionError("No activities for mobile person " + idx);
 
-				if (activities.size() == 0)
+				if (acts.isEmpty())
 					throw new AssertionError("Activities for mobile agent can not be empty.");
 
 				person.removePlan(person.getSelectedPlan());
-				Plan plan = createPlan(MexicoCityUtils.getHomeCoord(person), activities, rnd);
+				log.info("about to handle survey-person {} with MATSim personId {}", idx, person.getId());
+				Plan plan = createPlan(MexicoCityUtils.getHomeCoord(person), acts, rnd, person);
 
 				person.addPlan(plan);
 				person.setSelectedPlan(plan);
@@ -359,13 +362,12 @@ public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 		return minutes * 60 + rnd.nextInt(1200) - 600;
 	}
 
-	private Plan createPlan(Coord homeCoord, List<CSVRecord> activities, SplittableRandom rnd) {
+	private Plan createPlan(Coord homeCoord, List<CSVRecord> activities, SplittableRandom rnd, Person person) {
 		Plan plan = factory.createPlan();
+		plan.setPerson(person);
 
 		Activity a = null;
 		String lastMode = null;
-
-		double startTime = 0;
 
 		// Track the distance to the first home activity
 		double homeDist = 0;
@@ -376,6 +378,7 @@ public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 			CSVRecord act = activities.get(i);
 
 			String actType = act.get("type");
+			double startTime = Integer.parseInt(act.get("start_time")) * 60.;
 
 			// First and last activities that are other are changed to home
 			if (actType.equals("other") && (i == 0 || i == activities.size() - 1))
@@ -388,19 +391,15 @@ public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 			} else
 				a = factory.createActivityFromLinkId(actType, Id.createLinkId("unassigned"));
 
-			double legDuration = Double.parseDouble(act.get("leg_duration"));
+			double legDuration = Double.parseDouble(act.get("leg_duration")) * 60;
 
 			if (plan.getPlanElements().isEmpty()) {
 				// Add little
 				int seconds = randomizeDuration(duration, rnd);
 
 				a.setEndTime(seconds);
-				startTime += seconds;
 
 			} else if (duration < 1440) {
-
-				startTime += legDuration * 60;
-
 				// Flexible modes are represented with duration
 				// otherwise start and end time
 				int seconds = randomizeDuration(duration, rnd);
@@ -411,25 +410,22 @@ public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 					a.setStartTime(startTime);
 					a.setEndTime(startTime + seconds);
 				}
-
-				startTime += seconds;
 			}
 
 			double legDist = Double.parseDouble(act.get("leg_dist"));
 
-			if (act.get("dep_district").equals("999") || act.get("arr_district").equals("999")) {
+			if (act.get("leg_dep_district").equals("999") || act.get("leg_arr_district").equals("999")) {
 				//do not route if district id is unknown = 999
 			} else {
-				try {
-					legDist = getDistFromRoutedLeg(rnd, act, legDuration, plan);
-				} catch (IOException e) {
-					throw new RuntimeException(e);
+//					if it is the first act of the day, there is no leg to the activity -> duration and distance of "leg" = 0
+				if (i > 0) {
+					legDist = getDistFromRoutedLeg(rnd, act, legDuration, plan, homeCoord);
 				}
 			}
 
 
 			if (i > 0) {
-				a.getAttributes().putAttribute("orig_dist", legDist);
+				a.getAttributes().putAttribute(DIST_ATTR, legDist);
 				a.getAttributes().putAttribute("orig_duration", legDuration);
 			}
 
@@ -440,7 +436,11 @@ public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 				if (lastMode.equals("other"))
 					lastMode = "walk";
 
-				plan.addLeg(factory.createLeg(lastMode));
+				Leg leg = factory.createLeg(lastMode);
+				leg.getAttributes().putAttribute(DIST_ATTR, legDist);
+				leg.getAttributes().putAttribute("orig_duration", legDuration);
+
+				plan.addLeg(leg);
 			}
 
 			if (!arrivedHome) {
@@ -456,7 +456,7 @@ public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 
 		// First activity contains the home distance
 		Activity act = (Activity) plan.getPlanElements().get(0);
-		act.getAttributes().putAttribute("orig_dist", homeDist);
+		act.getAttributes().putAttribute(DIST_ATTR, homeDist);
 
 		// Last activity has no end time and duration
 		if (a != null) {
@@ -467,131 +467,119 @@ public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 			} else {
 
 				// End open activities
-				a.setMaximumDuration(30 * 60);
+				a.setMaximumDuration(30. * 60);
 				plan.addLeg(factory.createLeg(lastMode));
 				plan.addActivity(factory.createActivityFromCoord("home", homeCoord));
-
-				//log.warn("Last activity of type {}", a.getType());
 			}
 		}
 
 		return plan;
 	}
 
-	private Double getDistFromRoutedLeg(SplittableRandom rnd, CSVRecord act, double legDuration, Plan plan) throws IOException {
+	private Double getDistFromRoutedLeg(SplittableRandom rnd, CSVRecord act, double legDuration, Plan plan, Coord homeCoord) {
 
-		Map<String, Coord> district2Coord = new HashMap<>();
+//		list instead of map because depDistrict == arrDistrict would produce a map with only 1 key.
+		List<Map.Entry<String, Coord>> district2Coord = new ArrayList<>();
+		Coord coord = null;
 
-		String depDistrict = act.get("dep_district");
-		String arrDistrict = act.get("arr_district");
+//		get homeCoord from person if act typ is home
+		if (act.get("type").equals("home")) {
+			coord = homeCoord;
+		}
 
-		district2Coord.put(depDistrict, null);
-		district2Coord.put(arrDistrict, null);
+		String depDistrict = act.get("leg_dep_district");
+		String arrDistrict = act.get("leg_arr_district");
 
-		Coord randomDepCoord = null;
-		Coord randomArrCoord = null;
+		district2Coord.add(new AbstractMap.SimpleEntry<>(depDistrict, null));
+		district2Coord.add(new AbstractMap.SimpleEntry<>(arrDistrict, null));
 
-		AtomicReference<Double> routedDuration = new AtomicReference<>(null);
-		AtomicReference<Double> routedDistance = new AtomicReference<>(null);
+		AtomicReference<Double> routedDuration = new AtomicReference<>();
+		AtomicReference<Double> routedDistance = new AtomicReference<>();
 
-		while (routedDuration.get() == null || Math.abs(routedDuration.get() - legDuration) >= 300) {
+		Map<Double, Double> duration2Distance = new HashMap<>();
 
-			for (Map.Entry entry: district2Coord.entrySet()) {
-				entry.setValue(generateRandomCoord(rnd, entry.getKey().toString()));
+		int count = 0;
+		Double min = null;
+		Double closestDuration = null;
+
+		while (routedDuration.get() == null || Math.abs(routedDuration.get() - legDuration) >= 600) {
+			routedDuration.lazySet(0.);
+			routedDistance.lazySet(0.);
+
+			for (Map.Entry<String, Coord> entry: district2Coord) {
+				entry.setValue(generateRandomCoord(rnd, entry.getKey(), coord,
+					plan.getPerson().getAttributes().getAttribute(MexicoCityUtils.DISTR).toString(), district2Coord.indexOf(entry)));
 			}
 
 			String routingMode = act.get("leg_mode");
 
-			ActivityFacility depFac = fac.createActivityFacility(Id.create(depDistrict, ActivityFacility.class), district2Coord.get(depDistrict));
-			ActivityFacility arrFac = fac.createActivityFacility(Id.create(arrDistrict, ActivityFacility.class), district2Coord.get(arrDistrict));
+			ActivityFacility depFac = fac.createActivityFacility(Id.create(depDistrict, ActivityFacility.class), district2Coord.get(0).getValue());
+			ActivityFacility arrFac = fac.createActivityFacility(Id.create(arrDistrict, ActivityFacility.class), district2Coord.get(1).getValue());
 
 			List<? extends PlanElement> planElements = routingModules.get(routingMode).calcRoute(DefaultRoutingRequest.withoutAttributes(depFac, arrFac,
-				Double.parseDouble(act.get("departure")), plan.getPerson()));
+				Double.parseDouble(act.get("leg_departure")), plan.getPerson()));
 
-			planElements.stream().filter(planElement -> planElement instanceof Leg).filter(leg -> ((Leg) leg).getMode().equals(routingMode)).forEach(leg -> {
-				routedDistance.set(((Leg) leg).getRoute().getDistance());
-				routedDuration.set(((Leg) leg).getTravelTime().seconds());
+			planElements.stream().filter(Leg.class::isInstance).forEach(leg -> {
+				routedDistance.set(routedDistance.get() + ((Leg) leg).getRoute().getDistance());
+				routedDuration.set(routedDuration.get() + ((Leg) leg).getTravelTime().seconds());
 			});
+
+			duration2Distance.putIfAbsent(routedDuration.get(), routedDistance.get());
+
+			if (count >= 25) {
+//				no route with adequate leg duration can be found -> get value with fewest delta to survey leg uration
+				for (Map.Entry<Double, Double> e : duration2Distance.entrySet()) {
+					double delta = Math.abs(legDuration - e.getKey());
+
+					if (min == null || delta < min) {
+						min = delta;
+						closestDuration = e.getKey();
+					}
+				}
+				routedDistance.set(duration2Distance.get(closestDuration));
+				log.warn("Within 25 tries, no route with a delta to the surveyed duration of |600|s  or lower could be found. " +
+					"Therefore the routedDistance is set to the routed Distance with the closest routedDuration to the surveyed duration: {} m", duration2Distance.get(closestDuration));
+				break;
+			}
+			count++;
 		}
 		return routedDistance.get();
 	}
 
-	private Coord generateRandomCoord(SplittableRandom rnd, String districtNumber) throws IOException {
+	private Coord generateRandomCoord(SplittableRandom rnd, String districtNumber, Coord homeCoord, String homeDistrict, int noLoc) {
 		AtomicReference<Double> randomX = new AtomicReference<>();
 		AtomicReference<Double> randomY = new AtomicReference<>();
 
-		if (districtNumber.equals("888")) {
+		if (homeCoord != null && districtNumber.equals(homeDistrict) && noLoc == 1) {
+//			noLoc = index of districtNumber in List is needed because in the case of a route of same district to same district + home act (e.g. distr 178 to distr 178) ->
+//			method returns homeCoord for dep + arr -> route of 0 seconds - sme0124
+			randomX.set(homeCoord.getX());
+			randomY.set(homeCoord.getY());
+		} else if (districtNumber.equals("888")) {
 //			888 -> outside of metropolitan area
 //			buffer of 150km
 			Geometry outsideZMVM = shp.getGeometry().buffer(150000).difference(shp.getGeometry());
 
-//			TODO: remove this after test of written shp file
-//			ShapefileWriter writer =  new ShapefileWriter(FileChannel.open(Path.of("C:/Users/Simon/Desktop/wd/2023-11-22/outsideZMVM.shp")),
-//				FileChannel.open(Path.of("C:/Users/Simon/Desktop/wd/2023-11-22/outsideZMVM.shx")));
-
-//			writer.write(outsideZMVM.getFactory().createGeometryCollection(), ShapeType.POLYGON);
-//			writer.writeGeometry(outsideZMVM);
-//			writer.close();
-
-			SimpleFeatureTypeBuilder typeBuilder = new SimpleFeatureTypeBuilder();
-
-			SimpleFeatureBuilder builder = new SimpleFeatureBuilder(typeBuilder.buildFeatureType());
-
-			SimpleFeature feature = builder.buildFeature("12");
-
-			feature.setDefaultGeometry(outsideZMVM);
-
-			new ShapeFileWriter().writeGeometries(Collections.singleton(feature), "C:/Users/Simon/Desktop/wd/2023-11-22/outsideZMVM.shp");
-
-			randomX.set(rnd.nextDouble(outsideZMVM.getEnvelopeInternal().getMinX(), outsideZMVM.getEnvelopeInternal().getMaxX()));
-			randomY.set(rnd.nextDouble(outsideZMVM.getEnvelopeInternal().getMinY(), outsideZMVM.getEnvelopeInternal().getMaxY()));
+			randomX.set(rnd.nextDouble(outsideZMVM.getEnvelopeInternal().getMinX(),
+				outsideZMVM.getEnvelopeInternal().getMinX() + outsideZMVM.getEnvelopeInternal().getWidth()));
+			randomY.set(rnd.nextDouble(outsideZMVM.getEnvelopeInternal().getMinY(),
+				outsideZMVM.getEnvelopeInternal().getMinY() + outsideZMVM.getEnvelopeInternal().getHeight()));
 		} else {
+			AtomicBoolean containsPoint = new AtomicBoolean(false);
+			while (!containsPoint.get()) {
+//				generate random coord based on district of zmvm
+				features.stream().filter(feature ->
+					feature.getAttribute("Distrito").equals(districtNumber)).forEach(feature -> {
 
+					Envelope env = ((Geometry) feature.getDefaultGeometry()).getEnvelopeInternal();
 
-			Geometry outsideZMVM = shp.getGeometry().buffer(150000).difference(shp.getGeometry());
+					randomX.set(rnd.nextDouble(env.getMinX(), env.getMinX() + env.getWidth()));
+					randomY.set(rnd.nextDouble(env.getMinY(), env.getMinY() + env.getHeight()));
 
-			ShpFiles shpFiles = new ShpFiles(":/Users/Simon/Desktop/wd/2023-11-22/outsideZMVM.shp");
+					containsPoint.set(MGC.xy2Point(randomX.get(), randomY.get()).within((Geometry) feature.getDefaultGeometry()));
+				});
 
-
-
-
-
-//			TODO: remove this after test of written shp file
-//			ShapefileWriter writer =  new ShapefileWriter(FileChannel.open(Path.of("C:/Users/Simon/Desktop/wd/2023-11-22/outsideZMVM.shp")),
-//				FileChannel.open(Path.of("C:/Users/Simon/Desktop/wd/2023-11-22/outsideZMVM.shx")));
-
-			ShapefileWriter writer =  new ShapefileWriter(shpFiles.getStorageFile(ShpFileType.SHP).getWriteChannel(),
-				shpFiles.getStorageFile(ShpFileType.SHX).getWriteChannel());
-
-//			writer.write(outsideZMVM.getFactory().createGeometryCollection(), ShapeType.POLYGON);
-			writer.writeHeaders(outsideZMVM.getEnvelopeInternal(), ShapeType.POLYGON, 1, 1);
-			writer.writeGeometry(outsideZMVM);
-			writer.close();
-
-//			SimpleFeatureTypeBuilder typeBuilder = new SimpleFeatureTypeBuilder();
-//
-//			SimpleFeatureType type = typeBuilder.buildFeatureType();
-//			typeBuilder.
-//
-//			SimpleFeatureBuilder builder = new SimpleFeatureBuilder();
-//
-//			SimpleFeature simpleFeature = builder.buildFeature("12");
-//
-//			simpleFeature.setDefaultGeometry(outsideZMVM);
-//
-//			new ShapeFileWriter().writeGeometries(Collections.singleton(simpleFeature), "C:/Users/Simon/Desktop/wd/2023-11-22/outsideZMVM.shp");
-
-
-
-//			generate random coord based on district of zmvm
-			shp.readFeatures().stream().filter(feature ->
-				feature.getAttribute("Distrito").equals(districtNumber)).forEach(feature -> {
-				randomX.set(rnd.nextDouble(((Geometry) feature.getDefaultGeometry()).getEnvelopeInternal().getMinX(),
-					((Geometry) feature.getDefaultGeometry()).getEnvelopeInternal().getMaxX()));
-				randomY.set(rnd.nextDouble(((Geometry) feature.getDefaultGeometry()).getEnvelopeInternal().getMinY(),
-					((Geometry) feature.getDefaultGeometry()).getEnvelopeInternal().getMaxY()));
-			});
-
+			}
 		}
 		return new Coord(randomX.get(), randomY.get());
 	}
@@ -599,7 +587,7 @@ public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 	/**
 	 * Key used for sampling activities.
 	 */
-	private record Key(String gender, int age, int regionType, Boolean employed) {
+	private record Key(String gender, int age, int regionType, Boolean employed, String homeDistrict) {
 	}
 
 	private record Context(SplittableRandom rnd) {

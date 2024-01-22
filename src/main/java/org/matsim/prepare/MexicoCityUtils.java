@@ -16,6 +16,11 @@ import java.util.Objects;
 @SuppressWarnings("ConstantName")
 public final class MexicoCityUtils {
 
+	/**
+	 * Scaling factor if all persons use car (~21.99% share).
+	 */
+	public static final double CAR_FACTOR = 4.55;
+
 	public static final String HOME_X = "home_x";
 	public static final String HOME_Y = "home_y";
 
@@ -25,12 +30,14 @@ public final class MexicoCityUtils {
 	 * LOC = localidad
 	 * AGEB = area geoestadistica basica
 	 * MZA = manzana
+	 * DISTR = home district according to EOD2017 origin-destination survey districts
 	 */
 	public static final String ENT = "ent";
 	public static final String MUN = "mun";
 	public static final String LOC = "loc";
 	public static final String AGEB = "ageb";
 	public static final String MZA = "mza";
+	public static final String DISTR = "distr";
 	public static final String REGION_TYPE = "RegionType";
 
 	public static final String BIKE_AVAIL = "bikeAvail";

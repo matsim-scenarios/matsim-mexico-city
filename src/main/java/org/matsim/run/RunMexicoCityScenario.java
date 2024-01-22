@@ -20,11 +20,7 @@ import org.matsim.core.config.groups.PlansCalcRouteConfigGroup;
 import org.matsim.core.config.groups.VspExperimentalConfigGroup;
 import org.matsim.core.controler.AbstractModule;
 import org.matsim.core.controler.Controler;
-import org.matsim.prepare.ExtractFacilityShp;
-import org.matsim.prepare.population.CreateMexicoCityPopulation;
-import org.matsim.prepare.population.CreateMetropolitanAreaPopulation;
-import org.matsim.prepare.population.InitLocationChoice;
-import org.matsim.prepare.population.RunActivitySampling;
+import org.matsim.prepare.population.*;
 import picocli.CommandLine;
 
 import javax.annotation.Nullable;
@@ -32,8 +28,8 @@ import java.util.List;
 
 @CommandLine.Command(header = ":: Open Template Scenario ::", version = RunMexicoCityScenario.VERSION, mixinStandardHelpOptions = true)
 @MATSimApplication.Prepare({
-		AdjustActivityToLinkDistances.class, CleanNetwork.class, CreateLandUseShp.class, CreateMetropolitanAreaPopulation.class, CreateMexicoCityPopulation.class,
-		CreateNetworkFromSumo.class, CreateTransitScheduleFromGtfs.class, DownSamplePopulation.class, ExtractFacilityShp.class, ExtractHomeCoordinates.class,
+		AdjustActivityToLinkDistances.class, CleanNetwork.class, CreateCommuterRelations.class, CreateLandUseShp.class, CreateMATSimFacilities.class, CreateMetropolitanAreaPopulation.class, CreateMexicoCityPopulation.class,
+		CreateNetworkFromSumo.class, CreateTransitScheduleFromGtfs.class, DownSamplePopulation.class, ExtractHomeCoordinates.class,
 		ExtractRelevantFreightTrips.class, FixSubtourModes.class, GenerateShortDistanceTrips.class, InitLocationChoice.class, MergePopulations.class,
 		ResolveGridCoordinates.class, RunActivitySampling.class, TrajectoryToPlans.class, XYToLinks.class
 })

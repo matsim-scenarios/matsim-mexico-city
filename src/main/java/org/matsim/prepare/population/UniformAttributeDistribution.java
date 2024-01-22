@@ -3,13 +3,10 @@ package org.matsim.prepare.population;
 import java.util.*;
 
 /**
+ * Distribution where each attribute is equally likely.
  * class copied from
  * https://github.com/matsim-scenarios/matsim-berlin/blob/6.x/src/main/java/org/matsim/prepare/population/
  * -sme0923
- **/
-
-/**
- * Distribution where each attribute is equally likely.
  */
 public class UniformAttributeDistribution<T> implements AttributeDistribution<T> {
 
