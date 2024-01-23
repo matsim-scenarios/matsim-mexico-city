@@ -50,7 +50,7 @@ public class CreateCommuterRelations implements MATSimAppCommand {
 
 	private Map<String, TravelData> commuteTrips = new HashMap<>();
 
-	private Set<String> invalidDistricts = Set.of("888", "999");
+	private final Set<String> invalidDistricts = Set.of("888", "999");
 
 	private Network network = NetworkUtils.createNetwork();
 

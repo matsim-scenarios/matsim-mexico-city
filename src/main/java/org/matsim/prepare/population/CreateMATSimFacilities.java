@@ -66,7 +66,7 @@ public class CreateMATSimFacilities implements MATSimAppCommand {
 	public Integer call() throws Exception {
 
 		if (shp.getShapeFile() == null) {
-			log.error("Shp file with facilities is required.");
+			log.error("Shp file with facility locations is required.");
 			return 2;
 		}
 

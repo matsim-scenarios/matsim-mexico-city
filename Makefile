@@ -5,7 +5,8 @@ V := v1.0
 CRS := EPSG:4485
 
 MEMORY ?= 20G
-JAR := matsim-mexico-city-1.x-SNAPSHOT-71a272f-dirty.jar
+JAR := matsim-mexico-city-1.x-SNAPSHOT-ea9392a-dirty.jar
+#JAR := matsim-mexico-city-*.jar
 
 ifndef SUMO_HOME
 	export SUMO_HOME := $(abspath ../../sumo-1.15.0/)
@@ -116,7 +117,7 @@ input/mexico-city-static-1pct.plans.xml.gz: input/first-population-cdmx-only-1pc
 
 # the activites and persons table for this class are created by sampling survey data.
 # this is done via matsim-python-tools: https://github.com/matsim-vsp/matsim-python-tools/blob/mexico-city/matsim/scenariogen/data/run_extract_activities.py
-input/mexico-city-activities-1pct.test.plans.xml.gz: input/mexico-city-static-1pct.plans.xml.gz
+input/mexico-city-activities-1pct.plans.xml.gz: input/mexico-city-static-1pct.plans.xml.gz
 	$(sc) prepare activity-sampling --input $<\
 		--output $@\
 		--persons input/table-persons.csv.gz\
