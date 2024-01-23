@@ -183,8 +183,8 @@ public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 		routingModules.put(TransportMode.other, carRouter);
 		routingModules.put(TransportMode.bike, bikeRouter);
 		routingModules.put(TransportMode.walk, walkRouter);
-//		as of 20.12.23 -> colectivo routed separate from "normal" pt, as teleported mode with bike speed -> assumption
-		routingModules.put("colectivo", bikeRouter);
+//		as of 20.12.23 -> taxibus/colectivo routed separate from "normal" pt, as teleported mode with bike speed -> assumption
+		routingModules.put("taxibus", bikeRouter);
 	}
 
 	/**
