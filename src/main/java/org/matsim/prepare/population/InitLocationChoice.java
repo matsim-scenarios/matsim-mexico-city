@@ -19,6 +19,7 @@ import org.matsim.application.MATSimAppCommand;
 import org.matsim.application.options.ShpOptions;
 import org.matsim.core.network.NetworkUtils;
 import org.matsim.core.network.algorithms.TransportModeNetworkFilter;
+import org.matsim.core.population.PersonUtils;
 import org.matsim.core.population.PopulationUtils;
 import org.matsim.core.population.algorithms.ParallelPersonAlgorithmUtils;
 import org.matsim.core.population.algorithms.PersonAlgorithm;
@@ -211,6 +212,8 @@ public class InitLocationChoice implements MATSimAppCommand, PersonAlgorithm {
 		Map<String, ActivityFacility> fixedLocations = new HashMap<>();
 		Context ctx = ctxs.get();
 
+		int age = PersonUtils.getAge(person);
+
 		for (Plan plan : person.getPlans()) {
 			List<Activity> acts = TripStructureUtils.getActivities(plan, TripStructureUtils.StageActivityHandling.ExcludeStageActivities);
 
@@ -231,18 +234,18 @@ public class InitLocationChoice implements MATSimAppCommand, PersonAlgorithm {
 					Object origDist = act.getAttributes().getAttribute("orig_dist");
 
 					// Distance will be reduced
-					double dist = (double) origDist * 1000 / DETOUR_FACTOR;
+					double dist = (double) origDist / DETOUR_FACTOR;
 
 					if (fixedLocations.containsKey(type)) {
 						location = fixedLocations.get(type);
 					}
 
-					if (location == null && type.equals("work")) {
-						// sample work commute
+					if (location == null && (type.equals("work")) || type.equals("edu")) {
+						// sample commute. this can either be to a working loc or a study loc.
 						String idEntMun = person.getAttributes().getAttribute(MexicoCityUtils.ENT).toString() +
 							person.getAttributes().getAttribute(MexicoCityUtils.MUN).toString();
 
-						location = sampleCommute(ctx, dist, lastCoord, idEntMun);
+						location = sampleCommute(ctx, dist, lastCoord, idEntMun, type, age);
 					}
 
 					if (location == null && trees.containsKey(type)) {
@@ -300,23 +303,47 @@ public class InitLocationChoice implements MATSimAppCommand, PersonAlgorithm {
 	/**
 	 * Sample work place by using commute and distance information.
 	 */
-	private ActivityFacility sampleCommute(Context ctx, double dist, Coord refCoord, String zoneId) {
+	private ActivityFacility sampleCommute(Context ctx, double dist, Coord refCoord, String zoneId, String actType, int age) {
 
-		STRtree index = trees.get("work");
+		STRtree index;
 
-		ActivityFacility workPlace = null;
+		if (actType.equals("edu")) {
+//			survey data does not provide information on which type of school it is. This is determined by age instead.
+			index = getEduType(age);
+		} else {
+			index = trees.get("work");
+		}
+
+		ActivityFacility destination = null;
 
 		// Only larger distances can be commuters to other zones
 		if (dist > 3000) {
-			workPlace = commuter.selectTarget(ctx.rnd, Long.parseLong(zoneId), dist, MGC.coord2Point(refCoord), zone -> sampleZone(index, dist, refCoord, zone, ctx.rnd));
+			destination = commuter.selectTarget(ctx.rnd, Long.parseLong(zoneId), dist, MGC.coord2Point(refCoord), zone -> sampleZone(index, dist, refCoord, zone, ctx.rnd));
 		}
 
-		if (workPlace == null) {
+		if (destination == null) {
 			// Try selecting within same zone
-			workPlace = sampleZone(index, dist, refCoord, (Geometry) zones.get(zoneId).getDefaultGeometry(), ctx.rnd);
+			destination = sampleZone(index, dist, refCoord, (Geometry) zones.get(zoneId).getDefaultGeometry(), ctx.rnd);
 		}
 
-		return workPlace;
+		return destination;
+	}
+
+	private STRtree getEduType(int age) {
+		STRtree index;
+		if (age < 6) {
+			index = trees.get("edu_kiga");
+		} else if (age >= 6 && age < 12) {
+			index = trees.get("edu_primary");
+		} else if (age >= 12 && age < 15) {
+			index = trees.get("edu_secondary");
+		} else if (age >= 15 && age < 31) {
+			index = trees.get("edu_higher");
+		} else {
+//				age > 30 -> edu other
+			index = trees.get("edu_other");
+		}
+		return index;
 	}
 
 	/**
