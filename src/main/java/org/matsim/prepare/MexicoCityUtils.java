@@ -46,6 +46,7 @@ public final class MexicoCityUtils {
 	public static final String RESTRICTED_MOBILITY = "restricted_mobility";
 	public static final String ECONOMIC_STATUS = "economic_status";
 	public static final String HOUSEHOLD_SIZE = "household_size";
+	public static final String TAXIBUS = "taxibus";
 
 	//do not instantiate
 	private MexicoCityUtils() {
