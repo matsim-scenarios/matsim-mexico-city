@@ -79,7 +79,7 @@ public class CreateMexicoCityPopulation implements MATSimAppCommand {
 
 		final CoordinateTransformation ct = new GeotoolsTransformation(targetCrs, targetCrs);
 
-		if (shp.getShapeFile() == null) {
+		if (MexicoCityUtils.isDefined(shp.getShapeFile())) {
 			log.error("Shape file with manzanas is required.");
 			return 2;
 		}

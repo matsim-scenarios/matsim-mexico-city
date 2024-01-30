@@ -92,7 +92,7 @@ public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 	@Override
 	public Integer call() throws Exception {
 
-		if (shp.getShapeFile() == null) {
+		if (!MexicoCityUtils.isDefined(shp.getShapeFile())) {
 			log.error("Shape file with districts for EOD2017 is required.");
 			return 2;
 		}

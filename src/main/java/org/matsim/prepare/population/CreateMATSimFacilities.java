@@ -15,6 +15,7 @@ import org.matsim.core.network.NetworkUtils;
 import org.matsim.core.network.algorithms.TransportModeNetworkFilter;
 import org.matsim.core.network.filter.NetworkFilterManager;
 import org.matsim.facilities.*;
+import org.matsim.prepare.MexicoCityUtils;
 import org.opengis.feature.simple.SimpleFeature;
 import picocli.CommandLine;
 
@@ -65,7 +66,7 @@ public class CreateMATSimFacilities implements MATSimAppCommand {
 	@Override
 	public Integer call() throws Exception {
 
-		if (shp.getShapeFile() == null) {
+		if (MexicoCityUtils.isDefined(shp.getShapeFile())) {
 			log.error("Shp file with facility locations is required.");
 			return 2;
 		}

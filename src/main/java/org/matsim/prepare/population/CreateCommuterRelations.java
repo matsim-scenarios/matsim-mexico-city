@@ -15,6 +15,7 @@ import org.matsim.application.options.CsvOptions;
 import org.matsim.application.options.ShpOptions;
 import org.matsim.core.network.NetworkUtils;
 import org.matsim.core.utils.io.IOUtils;
+import org.matsim.prepare.MexicoCityUtils;
 import org.matsim.run.RunMexicoCityScenario;
 import org.opengis.feature.simple.SimpleFeature;
 import picocli.CommandLine;
@@ -60,12 +61,23 @@ public class CreateCommuterRelations implements MATSimAppCommand {
 
 	@Override
 	public Integer call() throws Exception {
+
+		if (!MexicoCityUtils.isDefined(zmvmShpPath)) {
+			log.error("Shape file with metropolitan area zones is required.");
+			return 2;
+		}
+
+		if (!MexicoCityUtils.isDefined(districtsShpPath)) {
+			log.error("Shape file with origin destination survey zones is required.");
+			return 2;
+		}
+
 		ShpOptions zmvmShp = new ShpOptions(zmvmShpPath, RunMexicoCityScenario.CRS, null);
 		ShpOptions districtsShp = new ShpOptions(districtsShpPath, RunMexicoCityScenario.CRS, null);
 
 		parseTravelSurvey();
 
-//		get centrois of muns and save them as network nodes
+//		get centroids of muns and save them as network nodes
 		for (SimpleFeature ft : zmvmShp.readFeatures()) {
 			Geometry geom = (Geometry) ft.getDefaultGeometry();
 

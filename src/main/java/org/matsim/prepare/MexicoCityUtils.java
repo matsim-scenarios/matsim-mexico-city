@@ -52,7 +52,7 @@ public final class MexicoCityUtils {
 	private MexicoCityUtils() {
 	}
 
-	public boolean isDefined(Path p) {
+	public static boolean isDefined(Path p) {
 		return p != null;
 	}
 
