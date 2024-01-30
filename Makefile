@@ -5,7 +5,7 @@ V := v1.0
 CRS := EPSG:4485
 
 MEMORY ?= 20G
-JAR := matsim-mexico-city-1.x-SNAPSHOT-ea9392a-dirty.jar
+JAR := matsim-mexico-city-1.x-SNAPSHOT-5f4fe69-dirty.jar
 #JAR := matsim-mexico-city-*.jar
 
 ifndef SUMO_HOME
@@ -151,6 +151,19 @@ input/mexico-city-initial-1pct.plans.xml.gz: input/mexico-city-activities-1pct.p
 	$(sc) prepare downsample-population $@\
 		 --sample-size 0.01\
 		 --samples 0.001\
+
+# create count stations based on csv count data
+input/mexico-city-v1.0.counts_car.2017.xml: ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/counts input/v1.0/mexico-city-v1.0-network-with-pt.xml.gz input/v1.0/mexico-city-v1.0-network-linkGeometries.csv
+	$(sc) prepare counts\
+		--input $<\
+		--network $(word 2,$^)\
+		--network-geometries $(word 3,$^)\
+		--input-crs "EPSG:4326"\
+		--target-crs $(CRS)\
+		--manual-matched-counts input/manualLinkAssignment.csv\
+		--year 2017
+
+# TODO: integrate count calib?!
 
 # TODO: prepare population class for adding income distr -> see LeipzigScenario
 

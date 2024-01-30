@@ -20,6 +20,7 @@ import org.matsim.core.config.groups.PlansCalcRouteConfigGroup;
 import org.matsim.core.config.groups.VspExperimentalConfigGroup;
 import org.matsim.core.controler.AbstractModule;
 import org.matsim.core.controler.Controler;
+import org.matsim.prepare.CreateCountsFromDatosVialesPortal;
 import org.matsim.prepare.population.*;
 import picocli.CommandLine;
 
@@ -28,7 +29,7 @@ import java.util.List;
 
 @CommandLine.Command(header = ":: Open Template Scenario ::", version = RunMexicoCityScenario.VERSION, mixinStandardHelpOptions = true)
 @MATSimApplication.Prepare({
-		AdjustActivityToLinkDistances.class, CleanNetwork.class, CreateCommuterRelations.class, CreateLandUseShp.class, CreateMATSimFacilities.class, CreateMetropolitanAreaPopulation.class, CreateMexicoCityPopulation.class,
+		AdjustActivityToLinkDistances.class, CleanNetwork.class, CreateCommuterRelations.class, CreateCountsFromDatosVialesPortal.class, CreateLandUseShp.class, CreateMATSimFacilities.class, CreateMetropolitanAreaPopulation.class, CreateMexicoCityPopulation.class,
 		CreateNetworkFromSumo.class, CreateTransitScheduleFromGtfs.class, DownSamplePopulation.class, ExtractHomeCoordinates.class,
 		ExtractRelevantFreightTrips.class, FixSubtourModes.class, GenerateShortDistanceTrips.class, InitLocationChoice.class, MergePopulations.class,
 		ResolveGridCoordinates.class, RunActivitySampling.class, TrajectoryToPlans.class, XYToLinks.class
@@ -108,6 +109,9 @@ public class RunMexicoCityScenario extends MATSimApplication {
 
 	@Override
 	protected void prepareScenario(Scenario scenario) {
+
+//		TODO: iterate through pop and change each leg with mode colectivo to taxibus.
+//		TODO: write MexicoCityMainModeIdentifier, which includes colectivo / taxibus
 
 
 	}
