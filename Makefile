@@ -5,7 +5,7 @@ V := v1.0
 CRS := EPSG:4485
 
 MEMORY ?= 20G
-JAR := matsim-mexico-city-1.x-SNAPSHOT-5f4fe69-dirty.jar
+JAR := matsim-mexico-city-1.x-SNAPSHOT-472d314-dirty.jar
 #JAR := matsim-mexico-city-*.jar
 
 ifndef SUMO_HOME
@@ -152,6 +152,12 @@ input/mexico-city-initial-1pct.plans.xml.gz: input/mexico-city-activities-1pct.p
 		 --sample-size 0.01\
 		 --samples 0.001\
 
+# create vehicle types
+input/mexico-city-v1.0-vehicle-types.xml: ./input
+	$(sc) prepare vehicle-types\
+		--directory $<\
+		--modes car,bike
+
 # create count stations based on csv count data
 input/mexico-city-v1.0.counts_car.2017.xml: ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/counts input/v1.0/mexico-city-v1.0-network-with-pt.xml.gz input/v1.0/mexico-city-v1.0-network-linkGeometries.csv
 	$(sc) prepare counts\
@@ -162,6 +168,13 @@ input/mexico-city-v1.0.counts_car.2017.xml: ../../public-svn/matsim/scenarios/co
 		--target-crs $(CRS)\
 		--manual-matched-counts input/manualLinkAssignment.csv\
 		--year 2017
+
+# create first scenario specific config
+input/mexico-city-v1.0-1pct.input.config.xml: ./input/v1.0 ./input
+	$(sc) prepare config\
+		--input-directory $<\
+		--modes car,bike,pt,walk,taxibus\
+		--output-directory $(word 2,$^)
 
 # TODO: integrate count calib?!
 

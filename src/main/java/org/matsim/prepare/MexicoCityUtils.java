@@ -16,6 +16,8 @@ import java.util.Objects;
 @SuppressWarnings("ConstantName")
 public final class MexicoCityUtils {
 
+	public static final String CRS = "EPSG:4485";
+
 	/**
 	 * Scaling factor if all persons use car (~21.99% share).
 	 */

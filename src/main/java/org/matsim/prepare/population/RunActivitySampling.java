@@ -29,7 +29,6 @@ import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.geometry.geotools.MGC;
 import org.matsim.facilities.*;
 import org.matsim.prepare.MexicoCityUtils;
-import org.matsim.run.RunMexicoCityScenario;
 import org.opengis.feature.simple.SimpleFeature;
 import picocli.CommandLine;
 import java.nio.file.Path;
@@ -101,7 +100,7 @@ public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 
 		Config config = ConfigUtils.createConfig();
 		config.plans().setInputFile(input.toString());
-		config.global().setCoordinateSystem(RunMexicoCityScenario.CRS);
+		config.global().setCoordinateSystem(MexicoCityUtils.CRS);
 		config.network().setInputFile(networkPath.toString());
 //		directWalkFactor set to high value to avoid creation of walk leg instead of pt leg when using swissRailRaptorRoutingModule
 		config.transitRouter().setDirectWalkFactor(1000.);

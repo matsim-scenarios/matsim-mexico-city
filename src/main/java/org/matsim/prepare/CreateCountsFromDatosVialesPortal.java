@@ -103,7 +103,7 @@ public class CreateCountsFromDatosVialesPortal implements MATSimAppCommand {
 		stations.values().stream().forEach(s -> {
 			Count<Link> carCount = car.createAndAddCount(s.linkAtomicReference().get().getId(), s.id);
 //			there are no hourly values in the count data. Therefore, the daily average for the year (TDPA) is set as value for 24h
-			carCount.createVolume(24 * 3600, s.volumes.motorizedVolume);
+			carCount.createVolume(24, s.volumes.motorizedVolume);
 			carCount.setCoord(s.coord);
 		});
 

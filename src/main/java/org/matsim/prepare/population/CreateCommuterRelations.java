@@ -16,7 +16,6 @@ import org.matsim.application.options.ShpOptions;
 import org.matsim.core.network.NetworkUtils;
 import org.matsim.core.utils.io.IOUtils;
 import org.matsim.prepare.MexicoCityUtils;
-import org.matsim.run.RunMexicoCityScenario;
 import org.opengis.feature.simple.SimpleFeature;
 import picocli.CommandLine;
 
@@ -72,8 +71,8 @@ public class CreateCommuterRelations implements MATSimAppCommand {
 			return 2;
 		}
 
-		ShpOptions zmvmShp = new ShpOptions(zmvmShpPath, RunMexicoCityScenario.CRS, null);
-		ShpOptions districtsShp = new ShpOptions(districtsShpPath, RunMexicoCityScenario.CRS, null);
+		ShpOptions zmvmShp = new ShpOptions(zmvmShpPath, MexicoCityUtils.CRS, null);
+		ShpOptions districtsShp = new ShpOptions(districtsShpPath, MexicoCityUtils.CRS, null);
 
 		parseTravelSurvey();
 

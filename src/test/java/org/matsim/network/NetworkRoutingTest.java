@@ -33,7 +33,7 @@ import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.facilities.ActivityFacilitiesFactory;
 import org.matsim.facilities.ActivityFacility;
 import org.matsim.facilities.FacilitiesUtils;
-import org.matsim.run.RunMexicoCityScenario;
+import org.matsim.prepare.MexicoCityUtils;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -59,7 +59,7 @@ public class NetworkRoutingTest {
 	public void runPtNetworkRoutingTest() {
 		Config config = ConfigUtils.createConfig();
 		config.network().setInputFile(ptNetworkPath);
-		config.global().setCoordinateSystem(RunMexicoCityScenario.CRS);
+		config.global().setCoordinateSystem(MexicoCityUtils.CRS);
 		config.transit().setTransitScheduleFile(transitSchedulePath.toString());
 //		directWalkFactor set to high value to avoid creation of walk leg instead of pt leg when using swissRailRaptorRoutingModule
 		config.transitRouter().setDirectWalkFactor(100000.);
@@ -108,7 +108,7 @@ public class NetworkRoutingTest {
 
 		Config config = ConfigUtils.createConfig();
 		config.network().setInputFile(carOnlyNetworkPath);
-		config.global().setCoordinateSystem(RunMexicoCityScenario.CRS);
+		config.global().setCoordinateSystem(MexicoCityUtils.CRS);
 		MutableScenario scenario = (MutableScenario) ScenarioUtils.loadScenario(config);
 
 		PopulationFactory factory = scenario.getPopulation().getFactory();

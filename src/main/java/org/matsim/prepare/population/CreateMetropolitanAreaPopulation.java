@@ -26,7 +26,6 @@ import org.matsim.core.utils.geometry.CoordinateTransformation;
 import org.matsim.core.utils.geometry.geotools.MGC;
 import org.matsim.core.utils.geometry.transformations.GeotoolsTransformation;
 import org.matsim.prepare.MexicoCityUtils;
-import org.matsim.run.RunMexicoCityScenario;
 import org.opengis.feature.simple.SimpleFeature;
 import picocli.CommandLine;
 
@@ -115,7 +114,7 @@ public class CreateMetropolitanAreaPopulation implements MATSimAppCommand {
 
 		PopulationUtils.sortPersons(population);
 
-		ProjectionUtils.putCRS(population, RunMexicoCityScenario.CRS);
+		ProjectionUtils.putCRS(population, MexicoCityUtils.CRS);
 		PopulationUtils.writePopulation(population, output.toString());
 
 		return 0;

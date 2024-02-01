@@ -31,7 +31,6 @@ import org.matsim.facilities.ActivityFacility;
 import org.matsim.facilities.FacilitiesUtils;
 import org.matsim.facilities.MatsimFacilitiesReader;
 import org.matsim.prepare.MexicoCityUtils;
-import org.matsim.run.RunMexicoCityScenario;
 import org.opengis.feature.simple.SimpleFeature;
 import picocli.CommandLine;
 
@@ -133,7 +132,7 @@ public class InitLocationChoice implements MATSimAppCommand, PersonAlgorithm {
 		log.info("Read {} zones", zones.size());
 
 
-		new MatsimFacilitiesReader(RunMexicoCityScenario.CRS, RunMexicoCityScenario.CRS, facilities)
+		new MatsimFacilitiesReader(MexicoCityUtils.CRS, MexicoCityUtils.CRS, facilities)
 			.readFile(facilityPath.toString());
 
 		Set<String> activities = facilities.getFacilities().values().stream()
