@@ -5,6 +5,7 @@ import com.google.inject.TypeLiteral;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.matsim.api.core.v01.Coord;
+import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.TransportMode;
 import org.matsim.api.core.v01.network.Link;
@@ -13,7 +14,6 @@ import org.matsim.application.MATSimAppCommand;
 import org.matsim.application.MATSimApplication;
 import org.matsim.application.options.SampleOptions;
 import org.matsim.application.prepare.CreateLandUseShp;
-import org.matsim.application.prepare.freight.tripExtraction.ExtractRelevantFreightTrips;
 import org.matsim.application.prepare.network.CleanNetwork;
 import org.matsim.application.prepare.network.CreateNetworkFromSumo;
 import org.matsim.application.prepare.population.*;
@@ -42,60 +42,40 @@ import org.matsim.core.scoring.ScoringFunctionFactory;
 import org.matsim.core.scoring.SumScoringFunction;
 import org.matsim.core.scoring.functions.*;
 import org.matsim.core.utils.geometry.CoordUtils;
-import org.matsim.prepare.counts.CreateCountsFromGeoPortalBerlin;
-import org.matsim.prepare.counts.CreateCountsFromVMZ;
-import org.matsim.prepare.counts.CreateCountsFromVMZOld;
-import org.matsim.prepare.download.DownloadCommuterStatistic;
-import org.matsim.prepare.network.FreeSpeedOptimizer;
-import org.matsim.prepare.network.PrepareNetworkParams;
-import org.matsim.prepare.network.SampleNetwork;
+import org.matsim.prepare.MexicoCityUtils;
 import org.matsim.prepare.opt.RunCountOptimization;
-import org.matsim.prepare.opt.SelectPlansFromIndex;
 import org.matsim.run.Activities;
-import org.matsim.run.RunOpenBerlinScenario;
+import org.matsim.run.RunMexicoCityScenario;
 import org.matsim.simwrapper.SimWrapperConfigGroup;
 import org.matsim.simwrapper.SimWrapperModule;
-import org.matsim.smallScaleCommercialTrafficGeneration.GenerateSmallScaleCommercialTrafficDemand;
 import picocli.CommandLine;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.nio.file.Path;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
-//TODO adapt this class to use it for this scenario. It was copied from matsim-berlin/6.x -sme0923
+import static org.matsim.prepare.MexicoCityUtils.CAR_FACTOR;
+import static org.matsim.prepare.MexicoCityUtils.isDefined;
 
 /**
  * This scenario class is used for run a MATSim scenario in various stages of the calibration process.
  */
-@CommandLine.Command(header = ":: Open Berlin Calibration ::", version = RunOpenBerlinScenario.VERSION, mixinStandardHelpOptions = true)
+@CommandLine.Command(header = ":: Open Mexico-City Calibration ::", version = RunMexicoCityScenario.VERSION, mixinStandardHelpOptions = true)
 @MATSimApplication.Prepare({
-	CreateLandUseShp.class, CreateMexicoCityPopulation.class, CreateBrandenburgPopulation.class, MergePopulations.class,
-	LookupRegioStaR.class, ExtractFacilityShp.class, DownSamplePopulation.class, DownloadCommuterStatistic.class,
-	RunActitopp.class, CreateNetworkFromSumo.class, CreateTransitScheduleFromGtfs.class,
-	CleanNetwork.class, SampleNetwork.class, ExtractFacilityShp.CreateMATSimFacilities.class, InitLocationChoice.class, FilterRelevantAgents.class,
-	CreateCountsFromGeoPortalBerlin.class, CreateCountsFromVMZOld.class, CreateCountsFromVMZ.class, ReprojectNetwork.class, RunActivitySampling.class,
-	MergePlans.class, SplitActivityTypesDuration.class, CleanPopulation.class, CleanAttributes.class,
-	GenerateSmallScaleCommercialTrafficDemand.class, RunCountOptimization.class, SelectPlansFromIndex.class,
-	ExtractRelevantFreightTrips.class, CheckCarAvailability.class, FixSubtourModes.class,
-	PrepareNetworkParams.class, FreeSpeedOptimizer.class, SetCarAvailabilityByAge.class
+	CreateLandUseShp.class, CreateMexicoCityPopulation.class, MergePopulations.class,
+	DownSamplePopulation.class, CreateNetworkFromSumo.class, CreateTransitScheduleFromGtfs.class,
+	CleanNetwork.class, CreateMATSimFacilities.class, InitLocationChoice.class, RunActivitySampling.class,
+	SplitActivityTypesDuration.class, CleanPopulation.class, RunCountOptimization.class, SetCarAvailabilityByAge.class
 })
 public class RunMexicoCityCalibration extends MATSimApplication {
 
-	/**
-	 * Scaling factor if all persons use car (~20.6% share).
-	 */
-	public static final double CAR_FACTOR = 4.85;
+
 	/**
 	 * Flexible activities, which need to be known for location choice and during generation.
 	 * A day can not end on a flexible activity.
 	 */
 	public static final Set<String> FLEXIBLE_ACTS = Set.of("shop_daily", "shop_other", "leisure", "dining");
-	private static final Logger log = LogManager.getLogger(RunOpenBerlinCalibration.class);
+	private static final Logger log = LogManager.getLogger(RunMexicoCityCalibration.class);
 	@CommandLine.Mixin
 	private final SampleOptions sample = new SampleOptions(100, 25, 10, 1);
 	@CommandLine.Option(names = "--mode", description = "Calibration mode that should be run.")
@@ -113,34 +93,39 @@ public class RunMexicoCityCalibration extends MATSimApplication {
 	@CommandLine.Option(names = "--plan-index", description = "Only use one plan with specified index")
 	private Integer planIndex;
 
+	@CommandLine.Option(names = "--subpopulations", description = "Set of subpopulations, which are to be included into the calibration", defaultValue = "person")
+	private String subPopulations;
+
+//	list of subpopulations in the scenario. So far, no small or large scale freight traffic has been integrated. sme0124
+	private static final String SUB_POP_PERSON = "person";
 	public RunMexicoCityCalibration() {
-		super("input/v6.0/berlin-v6.0-base-calib.config.xml");
-	}
-
-	/**
-	 * Round to two digits.
-	 */
-	public static double roundNumber(double x) {
-		return BigDecimal.valueOf(x).setScale(2, RoundingMode.HALF_EVEN).doubleValue();
-	}
-
-	/**
-	 * Round coordinates to sufficient precision.
-	 */
-	public static Coord roundCoord(Coord coord) {
-		return new Coord(roundNumber(coord.getX()), roundNumber(coord.getY()));
+		super("input/v1.0/mexico-city-v1.0-1pct.input.config.xml");
 	}
 
 	public static void main(String[] args) {
-		MATSimApplication.run(RunOpenBerlinCalibration.class, args);
+		MATSimApplication.run(RunMexicoCityCalibration.class, args);
 	}
 
 	@Override
 	protected Config prepareConfig(Config config) {
 
-		if (populationPath == null) {
+		if (mode == null)
+			throw new IllegalArgumentException("Calibration mode [--mode} not set!");
+
+		if (!isDefined(populationPath)) {
 			throw new IllegalArgumentException("Population path is required [--population]");
 		}
+
+		String regex = ",";
+		if (subPopulations.contains(";")) {
+			regex = ";";
+		}
+
+//		create mutable set
+		Set<String> subPops = new HashSet<>();
+		Set.of(subPopulations.split(regex)).forEach(subPops::add);
+//		add person subPop if not parsed from run params
+		subPops.add(SUB_POP_PERSON);
 
 		config.controler().setOverwriteFileSetting(OutputDirectoryHierarchy.OverwriteFileSetting.deleteDirectoryIfExists);
 
@@ -151,7 +136,7 @@ public class RunMexicoCityCalibration extends MATSimApplication {
 		config.planCalcScore().setWriteExperiencedPlans(true);
 
 		// Location choice does not work with the split types
-		Activities.addScoringParams(config, mode != CalibrationMode.locationChoice);
+		Activities.addScoringParams(config, mode != CalibrationMode.LOCATION_CHOICE);
 
 		SimWrapperConfigGroup sw = ConfigUtils.addOrGetModule(config, SimWrapperConfigGroup.class);
 
@@ -171,7 +156,7 @@ public class RunMexicoCityCalibration extends MATSimApplication {
 			config.counts().setCountsScaleFactor(sampleSize * countScale);
 			config.plans().setInputFile(sample.adjustName(config.plans().getInputFile()));
 
-			sw.defaultParams().sampleSize = sampleSize * countScale;
+			sw.defaultParams().sampleSize = String.valueOf(sampleSize * countScale);
 		}
 
 		// Routes are not relaxed yet, and there should not be too heavy congestion
@@ -184,8 +169,11 @@ public class RunMexicoCityCalibration extends MATSimApplication {
 		if (allCar)
 			config.transit().setUseTransit(false);
 
+//		clear strategies before adding new ones
+		config.strategy().clearStrategySettings();
+
 		// Required for all calibration strategies
-		for (String subpopulation : List.of("person", "commercialPersonTraffic", "commercialPersonTraffic_service")) {
+		for (String subpopulation : subPops) {
 			config.strategy().addStrategySettings(
 				new StrategyConfigGroup.StrategySettings()
 					.setStrategyName(DefaultPlanStrategiesModule.DefaultSelector.ChangeExpBeta)
@@ -194,25 +182,22 @@ public class RunMexicoCityCalibration extends MATSimApplication {
 			);
 		}
 
-		if (mode == null)
-			throw new IllegalArgumentException("Calibration mode [--mode} not set!");
-
-		if (mode == CalibrationMode.locationChoice) {
+		if (mode == CalibrationMode.LOCATION_CHOICE) {
 
 			config.strategy().addStrategySettings(new StrategyConfigGroup.StrategySettings()
 				.setStrategyName(FrozenTastes.LOCATION_CHOICE_PLAN_STRATEGY)
 				.setWeight(weight)
-				.setSubpopulation("person")
+				.setSubpopulation(SUB_POP_PERSON)
 			);
 
 			config.strategy().addStrategySettings(new StrategyConfigGroup.StrategySettings()
 				.setStrategyName(DefaultPlanStrategiesModule.DefaultStrategy.ReRoute)
 				.setWeight(weight / 5)
-				.setSubpopulation("person")
+				.setSubpopulation(SUB_POP_PERSON)
 			);
 
 			// Overwrite these to fix scoring warnings
-			config.planCalcScore().addActivityParams(new PlanCalcScoreConfigGroup.ActivityParams("work").setTypicalDuration(8 * 3600));
+			config.planCalcScore().addActivityParams(new PlanCalcScoreConfigGroup.ActivityParams("work").setTypicalDuration(8 * 3600.));
 			config.planCalcScore().addActivityParams(new PlanCalcScoreConfigGroup.ActivityParams("pt interaction").setTypicalDuration(30));
 
 			config.vspExperimental().setAbleToOverwritePtInteractionParams(true);
@@ -229,10 +214,10 @@ public class RunMexicoCityCalibration extends MATSimApplication {
 			dccg.setRandomSeed(2);
 			dccg.setDestinationSamplePercent(25);
 
-		} else if (mode == CalibrationMode.cadyts) {
+		} else if (mode == CalibrationMode.CADYTS) {
 
 			// Re-route for all populations
-			for (String subpopulation : List.of("person", "commercialPersonTraffic", "commercialPersonTraffic_service")) {
+			for (String subpopulation : subPops) {
 				config.strategy().addStrategySettings(new StrategyConfigGroup.StrategySettings()
 					.setStrategyName(DefaultPlanStrategiesModule.DefaultStrategy.ReRoute)
 					.setWeight(weight)
@@ -250,10 +235,10 @@ public class RunMexicoCityCalibration extends MATSimApplication {
 
 			config.vspExperimental().setVspDefaultsCheckingLevel(VspExperimentalConfigGroup.VspDefaultsCheckingLevel.ignore);
 
-		} else if (mode == CalibrationMode.routeChoice) {
+		} else if (mode == CalibrationMode.ROUTE_CHOICE) {
 
 			// Re-route for all populations
-			for (String subpopulation : List.of("person", "commercialPersonTraffic", "commercialPersonTraffic_service")) {
+			for (String subpopulation : subPops) {
 				config.strategy().addStrategySettings(new StrategyConfigGroup.StrategySettings()
 					.setStrategyName(DefaultPlanStrategiesModule.DefaultStrategy.ReRoute)
 					.setWeight(weight)
@@ -261,10 +246,9 @@ public class RunMexicoCityCalibration extends MATSimApplication {
 				);
 			}
 
-		} else if (mode == CalibrationMode.eval) {
+		} else if (mode == CalibrationMode.EVAL) {
 
-			iterations = 0;
-			config.controler().setLastIteration(0);
+			config.controler().setLastIteration(1);
 
 		} else
 			throw new IllegalStateException("Mode not implemented:" + mode);
@@ -275,8 +259,9 @@ public class RunMexicoCityCalibration extends MATSimApplication {
 	@Override
 	protected void prepareScenario(Scenario scenario) {
 
+		changeModeNames(scenario.getPopulation());
 
-		if (mode == CalibrationMode.cadyts)
+		if (mode == CalibrationMode.CADYTS)
 			// each initial plan needs a separate type, so it won't be removed
 			for (Person person : scenario.getPopulation().getPersons().values()) {
 				for (int i = 0; i < person.getPlans().size(); i++) {
@@ -350,7 +335,7 @@ public class RunMexicoCityCalibration extends MATSimApplication {
 	@Override
 	protected void prepareControler(Controler controler) {
 
-		if (mode == CalibrationMode.locationChoice) {
+		if (mode == CalibrationMode.LOCATION_CHOICE) {
 			FrozenTastes.configure(controler);
 
 			controler.addOverridingModule(new AbstractModule() {
@@ -361,7 +346,7 @@ public class RunMexicoCityCalibration extends MATSimApplication {
 				}
 			});
 
-		} else if (mode == CalibrationMode.cadyts) {
+		} else if (mode == CalibrationMode.CADYTS) {
 
 			controler.addOverridingModule(new CadytsCarModule());
 			controler.setScoringFunctionFactory(new ScoringFunctionFactory() {
@@ -407,13 +392,80 @@ public class RunMexicoCityCalibration extends MATSimApplication {
 	}
 
 	/**
+	 * change mode names from act sampling to real matsim transport modes.
+	 */
+	protected void changeModeNames(Population population) {
+
+//		yy maybe this method should be put into the run class / utils class
+		for (Person p : population.getPersons().values()) {
+			for (Plan plan : p.getPlans()){
+				List<Leg> legs = TripStructureUtils.getLegs(plan);
+				for (Leg l : legs) {
+					if (l.getMode().equals("colectivo")) {
+						l.setMode(MexicoCityUtils.TAXIBUS);
+					} else if (l.getMode().equals(TransportMode.motorcycle)) {
+						l.setMode(TransportMode.car);
+					} else if (l.getMode().equals(TransportMode.ride)) {
+						l.setMode(TransportMode.walk);
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * @param scenario scenario from config
+	 * @deprecated only for testing purposes
+	 */
+	@Deprecated(since="1.0")
+	protected void setTestPopToScenario(Scenario scenario) {
+		Population population = scenario.getPopulation();
+		population.getPersons().clear();
+
+		PopulationFactory fac = population.getFactory();
+
+		Person car = fac.createPerson(Id.createPersonId("car"));
+		Person bike = fac.createPerson(Id.createPersonId("bike"));
+		Person walk = fac.createPerson(Id.createPersonId("walk"));
+		Person taxibus = fac.createPerson(Id.createPersonId("taxibus"));
+		Person pt = fac.createPerson(Id.createPersonId("pt"));
+
+		Set.of(car, bike, walk, taxibus, pt).forEach(p -> {
+			Plan plan = fac.createPlan();
+
+			Activity home1 = fac.createActivityFromCoord("home",
+				new Coord(1735035.0689842855, 2182320.2493319022));
+			home1.setEndTime(28800.);
+
+			Activity work = fac.createActivityFromCoord("work",
+				new Coord(1738767.8423261235, 2165194.347756476));
+			work.setEndTime(32000.);
+
+			Activity home2 = fac.createActivityFromCoord("home",
+				new Coord(1735035.0689842855, 2182320.2493319022));
+			home2.setEndTime(40000.);
+
+			plan.addActivity(home1);
+			plan.addLeg(fac.createLeg(p.getId().toString()));
+			plan.addActivity(work);
+			plan.addLeg(fac.createLeg(p.getId().toString()));
+			plan.addActivity(home2);
+
+			p.addPlan(plan);
+			p.setSelectedPlan(plan);
+			p.getAttributes().putAttribute("subpopulation", SUB_POP_PERSON);
+			population.addPerson(p);
+		});
+	}
+
+	/**
 	 * Different calibration stages.
 	 */
 	public enum CalibrationMode {
-		eval,
-		locationChoice,
-		cadyts,
-		routeChoice
+		EVAL,
+		LOCATION_CHOICE,
+		CADYTS,
+		ROUTE_CHOICE
 	}
 
 }
