@@ -2,6 +2,7 @@ package org.matsim.analysis;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.matsim.api.core.v01.population.Plan;
 import org.matsim.api.core.v01.population.Population;
 import org.matsim.application.MATSimAppCommand;
 import org.matsim.core.population.PopulationUtils;
@@ -45,16 +46,35 @@ public class ComparePopulations implements MATSimAppCommand {
 		for (Map.Entry<String, Population> e: populations.entrySet()) {
 			AtomicReference<Double> atHome = new AtomicReference<>(0.);
 
+			Map<String, Integer> activityCount = new HashMap<>();
+
 			e.getValue().getPersons().values()
 				.stream().forEach(p -> {
-					if (TripStructureUtils.getLegs(p.getSelectedPlan()).isEmpty())
+
+					Plan selected = p.getSelectedPlan();
+
+					if (TripStructureUtils.getLegs(selected).isEmpty())
 						atHome.getAndSet((atHome.get() + 1));
+
+					TripStructureUtils.getActivities(selected, TripStructureUtils.StageActivityHandling.ExcludeStageActivities)
+						.forEach(a -> {
+							if (!activityCount.containsKey(a.getType())) {
+								activityCount.put(a.getType(), 1);
+							} else {
+								activityCount.put(a.getType(), activityCount.get(a.getType()) + 1);
+							}
+						});
 				});
+
+
 
 			int size = e.getValue().getPersons().size();
 			double mobile = (size - atHome.get()) / size;
 
-			stats.add(new Stats(e.getKey(), size, mobile));
+			AtomicReference<Map<String, Integer>> countMap = new AtomicReference<>();
+			countMap.set(activityCount);
+
+			stats.add(new Stats(e.getKey(), size, mobile, countMap));
 		}
 
 		List<Double> mobileShares = new ArrayList<>();
@@ -64,6 +84,13 @@ public class ComparePopulations implements MATSimAppCommand {
 				mobileShares.add(s.mobileShare);
 				log.info("Stats for population {}: " +
 					"Total size of {} agents with {} % of them mobile.", s.name, s.size, s.mobileShare);
+
+				s.actCount.set(breakDownActTypes(s.actCount.get()));
+
+				double actSum = s.actCount.get().values().stream().mapToInt(Integer::intValue).sum();
+
+				s.actCount.get().entrySet().forEach(a -> log.info("Population {} records {} activities ({}%) of type {} in selected plans."
+					, s.name, a.getValue(), Math.round((a.getValue() / actSum)*100), a.getKey()));
 			});
 
 		Collections.sort(mobileShares);
@@ -93,6 +120,38 @@ public class ComparePopulations implements MATSimAppCommand {
 		return 0;
 	}
 
-	private record Stats(String name, int size, double mobileShare) {
+	private Map<String, Integer> breakDownActTypes(Map<String, Integer> actCount) {
+		Map<String, Integer> actCountNoDuration = new HashMap<>();
+
+		for (Map.Entry<String, Integer> e : actCount.entrySet()) {
+			String type = e.getKey().replaceAll("\\d", "");
+
+			if (e.getKey().contains(type)) {
+				if (!actCountNoDuration.containsKey(type)) {
+					actCountNoDuration.put(type, e.getValue());
+				} else {
+					actCountNoDuration.put(type, actCountNoDuration.get(type) + e.getValue());
+				}
+			}
+		}
+
+		Map<String, Integer> actCountGeneral = new HashMap<>();
+
+		for (Map.Entry<String, Integer> e : actCountNoDuration.entrySet()) {
+			String type = e.getKey().split("_")[0];
+
+			if (e.getKey().contains(type)) {
+				if (!actCountGeneral.containsKey(type)) {
+					actCountGeneral.put(type, e.getValue());
+				} else {
+					actCountGeneral.put(type, actCountGeneral.get(type) + e.getValue());
+				}
+			}
+		}
+
+		return actCountGeneral;
+	}
+
+	private record Stats(String name, int size, double mobileShare, AtomicReference<Map<String, Integer>> actCount) {
 	}
 }
