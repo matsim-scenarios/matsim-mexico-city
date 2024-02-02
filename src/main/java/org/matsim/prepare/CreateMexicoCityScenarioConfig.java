@@ -6,6 +6,7 @@ import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.config.groups.*;
 import org.matsim.core.replanning.modules.SubtourModeChoice;
+import org.matsim.run.Activities;
 import org.matsim.run.RunMexicoCityScenario;
 import picocli.CommandLine;
 
@@ -20,7 +21,7 @@ public class CreateMexicoCityScenarioConfig implements MATSimAppCommand {
 	@CommandLine.Option(names = "--input-directory", description = "path to directory with config inputs. Plans, facilities, counts etc.", required = true)
 	private Path dir;
 
-	@CommandLine.Option(names = "--sample-size", defaultValue = "1")
+	@CommandLine.Option(names = "--sample-size", description = "Scenario sample size. Typically 1, 10 or 25.", defaultValue = "1")
 	private double sampleSize;
 
 	@CommandLine.Option(names = "--modes", description = "Transport modes to be included into the simulation.", required = true)
@@ -82,6 +83,7 @@ public class CreateMexicoCityScenarioConfig implements MATSimAppCommand {
 		configurePlanCalcScoreModule(config, relevantModes);
 
 		config.plans().setInputFile(plansPath);
+		config.plans().setRemovingUnneccessaryPlanAttributes(true);
 
 		configurePlansCalcRouteModule(config);
 
@@ -103,8 +105,8 @@ public class CreateMexicoCityScenarioConfig implements MATSimAppCommand {
 		smc.setSubpopulation(SUBPOP_PERSON);
 
 		StrategyConfigGroup.StrategySettings timeAlloc = new StrategyConfigGroup.StrategySettings();
-		smc.setStrategyName("TimeAllocationMutator");
-		smc.setSubpopulation(SUBPOP_PERSON);
+		timeAlloc.setStrategyName("TimeAllocationMutator");
+		timeAlloc.setSubpopulation(SUBPOP_PERSON);
 
 		Set.of(reRoute, changeExpBeta, smc, timeAlloc).forEach(config.strategy()::addStrategySettings);
 
@@ -163,12 +165,12 @@ public class CreateMexicoCityScenarioConfig implements MATSimAppCommand {
 			.filter(p -> p.getActivityType().contains("interaction"))
 			.forEach(p -> p.setTypicalDuration(1.));
 
+		Activities.addScoringParams(config, false);
+
 		relevantModes.forEach(m -> {
 //			iterate 2 times, first time to create missing modeParams, 2nd time to set correct values.
 			for (int i = 0; i <=1; i++) {
 				if (config.planCalcScore().getModes().containsKey(m)) {
-					config.planCalcScore().getModes().get(m).setMarginalUtilityOfTraveling(0.);
-
 //				values come from Berlin output config. They have to be changed into mexico's currency later
 					if (m.equals(TransportMode.car)) {
 						config.planCalcScore().getModes().get(m).setDailyMonetaryConstant(-14.1);
@@ -183,13 +185,15 @@ public class CreateMexicoCityScenarioConfig implements MATSimAppCommand {
 				}
 			}
 		});
+		//		set all marginal ut of trav to 0, otherwise simulation will abort (vsp standards)
+		config.planCalcScore().getModes().values().forEach(m -> m.setMarginalUtilityOfTraveling(0.));
 	}
 
 	private void configureQsimModule(Config config) {
 		config.qsim().setEndTime(36 * 3600.);
 		config.qsim().setFlowCapFactor(sampleSize / 100);
 		config.qsim().setLinkDynamics(QSimConfigGroup.LinkDynamics.PassingQ);
-		config.qsim().setMainModes(Set.of(TransportMode.car, TransportMode.bike));
+		config.qsim().setMainModes(Set.of(TransportMode.car));
 		config.qsim().setNumberOfThreads(8);
 		config.qsim().setSimEndtimeInterpretation(QSimConfigGroup.EndtimeInterpretation.onlyUseEndtime);
 		config.qsim().setSimStarttimeInterpretation(QSimConfigGroup.StarttimeInterpretation.onlyUseStarttime);
