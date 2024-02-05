@@ -215,7 +215,7 @@ public class RunActivitySampling implements MATSimAppCommand, PersonAlgorithm {
 		AtomicInteger i = new AtomicInteger();
 
 		csv.stream().forEach(r -> {
-			int pIdx = Integer.parseInt(r.get("p_index"));
+			int pIdx = Integer.parseInt(r.get("p_id"));
 
 			if (pIdx != currentId.get()) {
 				if (current[0] != null) {
