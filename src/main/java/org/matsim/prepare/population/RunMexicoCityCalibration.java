@@ -58,7 +58,7 @@ import static org.matsim.prepare.MexicoCityUtils.CAR_FACTOR;
 import static org.matsim.prepare.MexicoCityUtils.isDefined;
 
 /**
- * This scenario class is used for run a MATSim scenario in various stages of the calibration process.
+ * This scenario class is used to run a MATSim scenario in various stages of the calibration process.
  */
 @CommandLine.Command(header = ":: Open Mexico-City Calibration ::", version = RunMexicoCityScenario.VERSION, mixinStandardHelpOptions = true)
 @MATSimApplication.Prepare({
@@ -247,8 +247,6 @@ public class RunMexicoCityCalibration extends MATSimApplication {
 			}
 
 		} else if (mode == CalibrationMode.EVAL) {
-
-			config.controler().setLastIteration(1);
 
 		} else
 			throw new IllegalStateException("Mode not implemented:" + mode);
