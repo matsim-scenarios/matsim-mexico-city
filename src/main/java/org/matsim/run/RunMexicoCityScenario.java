@@ -32,11 +32,11 @@ import java.util.List;
 
 @CommandLine.Command(header = ":: Open Mexico-City Scenario ::", version = RunMexicoCityScenario.VERSION, mixinStandardHelpOptions = true)
 @MATSimApplication.Prepare({
-		AdjustActivityToLinkDistances.class, CleanNetwork.class, CreateCommuterRelations.class, CreateCountsFromDatosVialesPortal.class, CreateLandUseShp.class,
-		CreateMATSimFacilities.class, CreateMetropolitanAreaPopulation.class, CreateMexicoCityPopulation.class,	CreateMexicoCityScenarioConfig.class,
+	AdjustActivityToLinkDistances.class, CleanNetwork.class, CreateCommuterRelations.class, CreateCountsFromDatosVialesPortal.class, CreateLandUseShp.class,
+	CreateMATSimFacilities.class, CreateMetropolitanAreaPopulation.class, CreateMexicoCityPopulation.class, CreateMexicoCityScenarioConfig.class,
 	CreateNetworkFromSumo.class, CreateTransitScheduleFromGtfs.class, CreateVehicleTypes.class, DownSamplePopulation.class, ExtractHomeCoordinates.class,
-		ExtractRelevantFreightTrips.class, FixSubtourModes.class, GenerateShortDistanceTrips.class, InitLocationChoice.class, MergePopulations.class,
-		ResolveGridCoordinates.class, RunActivitySampling.class, RunCountOptimization.class, TrajectoryToPlans.class, XYToLinks.class
+	ExtractRelevantFreightTrips.class, FixSubtourModes.class, GenerateShortDistanceTrips.class, InitLocationChoice.class, MergePopulations.class,
+	ResolveGridCoordinates.class, RunActivitySampling.class, RunCountOptimization.class, TrajectoryToPlans.class, XYToLinks.class
 })
 @MATSimApplication.Analysis({
 		TravelTimeAnalysis.class, LinkStats.class, CheckPopulation.class

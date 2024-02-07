@@ -3,10 +3,7 @@ package org.matsim.prepare.opt;
 import org.optaplanner.core.api.score.director.ScoreDirector;
 import org.optaplanner.core.impl.heuristic.selector.move.factory.MoveIteratorFactory;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 /**
  * Select a move that is guaranteed to improve the solution.
@@ -29,17 +26,17 @@ public class LargeShuffleMoveSelector implements MoveIteratorFactory<PlanAssignm
 	public Iterator<LargeChangeMove> createRandomMoveIterator(ScoreDirector<PlanAssignmentProblem> scoreDirector, Random workingRandom) {
 		List<PlanPerson> persons = scoreDirector.getWorkingSolution().getPersons();
 
-		return new It(scoreDirector.getWorkingSolution().getMaxK(), persons.subList(0, persons.size() / 8), workingRandom);
+		return new It(scoreDirector.getWorkingSolution().getMaxK(), persons.subList(0, persons.size() / 8), new SplittableRandom(workingRandom.nextLong()));
 	}
 
 	private static final class It implements Iterator<LargeChangeMove> {
 
 		private final int maxK;
 		private final List<PlanPerson> list;
-		private final Random random;
+		private final SplittableRandom random;
 		private int done = 0;
 
-		It(int maxK, List<PlanPerson> list, Random random) {
+		It(int maxK, List<PlanPerson> list, SplittableRandom random) {
 			this.maxK = maxK;
 			this.list = list;
 			this.random = random;

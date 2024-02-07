@@ -138,11 +138,7 @@ public class RunMexicoCityCalibration extends MATSimApplication {
 		// Location choice does not work with the split types
 		Activities.addScoringParams(config, mode != CalibrationMode.LOCATION_CHOICE);
 
-		SimWrapperConfigGroup sw = ConfigUtils.addOrGetModule(config, SimWrapperConfigGroup.class);
-
-		sw.defaultParams().mapCenter = "13.39,52.51";
-		sw.defaultParams().mapZoomLevel = 9.1;
-		sw.defaultParams().shp = "./area/area.shp";
+		configureSimwrapperCfgGroup(config);
 
 		if (sample.isSet()) {
 			double sampleSize = sample.getSample();
@@ -155,8 +151,6 @@ public class RunMexicoCityCalibration extends MATSimApplication {
 			// Counts can be scaled with sample size
 			config.counts().setCountsScaleFactor(sampleSize * countScale);
 			config.plans().setInputFile(sample.adjustName(config.plans().getInputFile()));
-
-			sw.defaultParams().sampleSize = String.valueOf(sampleSize * countScale);
 		}
 
 		// Routes are not relaxed yet, and there should not be too heavy congestion
@@ -252,6 +246,19 @@ public class RunMexicoCityCalibration extends MATSimApplication {
 			throw new IllegalStateException("Mode not implemented:" + mode);
 
 		return config;
+	}
+
+	private void configureSimwrapperCfgGroup(Config config) {
+		SimWrapperConfigGroup sw = ConfigUtils.addOrGetModule(config, SimWrapperConfigGroup.class);
+
+		sw.defaultParams().mapCenter = "13.39,52.51";
+		sw.defaultParams().mapZoomLevel = 9.1;
+		sw.defaultParams().shp = "./area/area.shp";
+
+		if (sample.isSet()) {
+			double countScale = allCar ? CAR_FACTOR : 1;
+			sw.defaultParams().sampleSize = String.valueOf(sample.getSample() * countScale);
+		}
 	}
 
 	@Override
@@ -412,8 +419,7 @@ public class RunMexicoCityCalibration extends MATSimApplication {
 	}
 
 	/**
-	 * @param scenario scenario from config
-	 * @deprecated only for testing purposes
+	 * method was used for testing and therefore is @deprecated.
 	 */
 	@Deprecated(since="1.0")
 	protected void setTestPopToScenario(Scenario scenario) {
