@@ -5,7 +5,7 @@ V := v1.0
 CRS := EPSG:4485
 
 MEMORY ?= 20G
-JAR := matsim-mexico-city-1.x-SNAPSHOT-472d314-dirty.jar
+JAR :=  matsim-mexico-city-1.x-SNAPSHOT-4b7bf5f-dirty.jar
 #JAR := matsim-mexico-city-*.jar
 
 ifndef SUMO_HOME
@@ -138,6 +138,7 @@ input/commuter.csv: ../../public-svn/matsim/scenarios/countries/mx/mexico-city/m
 		--survey-shp ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/distritos_eod2017_unam/DistritosEODHogaresZMVM2017_utm12n.shp\
 		--output $@
 
+#	--k 10 -> create 10 plans for each person to have more choices for CountOptimization
 input/mexico-city-initial-1pct.plans.xml.gz: input/mexico-city-activities-1pct.plans.xml.gz input/v1.0/mexico-city-v1.0-facilities.xml.gz input/v1.0/mexico-city-v1.0-network.xml.gz
 	$(sc) prepare init-location-choice\
 	 	--input $<\
@@ -146,6 +147,7 @@ input/mexico-city-initial-1pct.plans.xml.gz: input/mexico-city-activities-1pct.p
 	 	--network $(word 3,$^)\
 	 	--shp ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/zmvm_2010/zmvm_2010_utm12n.shp\
 	 	--commuter input/commuter.csv\
+	 	--k 10\
 
 # For debugging and visualization
 	$(sc) prepare downsample-population $@\
@@ -176,7 +178,25 @@ input/mexico-city-v1.0-1pct.input.config.xml: ./input/v1.0 ./input
 		--modes car,bike,pt,walk,taxibus\
 		--output-directory $(word 2,$^)
 
-# TODO: integrate count calib?!
+input/eval-opt:
+	java -cp $(JAR) -Xmx14G org.matsim.prepare.population.RunMexicoCityCalibration\
+		run --mode "EVAL"\
+		--iterations 1\
+		--output "output/eval-opt"\
+		--1pct\
+		--population mexico-city-initial-1pct.plans.xml.gz\
+		--config:strategy.maxAgentPlanMemorySize 10
+
+# experienced plans are output of above calibration eval run
+ERROR_METRIC ?= LOG_ERROR
+input/mexico-city-initial-1pct-plan-selection.csv: ./input/mexico-city-initial-1.0-1pct.experienced_plans.xml.gz input/v1.0/mexico-city-v1.0-network.xml.gz input/v1.0/mexico-city-v1.0.counts_car.2017.xml
+	$(sc) prepare run-count-opt\
+	 --input $<\
+	 --network $(word 2,$^)\
+     --counts $(word 3,$^)\
+	 --output $@\
+	 --metric $(ERROR_METRIC)\
+	 --k 10
 
 # TODO: prepare population class for adding income distr -> see LeipzigScenario
 

@@ -23,6 +23,7 @@ import org.matsim.core.controler.Controler;
 import org.matsim.prepare.CreateCountsFromDatosVialesPortal;
 import org.matsim.prepare.CreateMexicoCityScenarioConfig;
 import org.matsim.prepare.CreateVehicleTypes;
+import org.matsim.prepare.opt.RunCountOptimization;
 import org.matsim.prepare.population.*;
 import picocli.CommandLine;
 
@@ -35,7 +36,7 @@ import java.util.List;
 		CreateMATSimFacilities.class, CreateMetropolitanAreaPopulation.class, CreateMexicoCityPopulation.class,	CreateMexicoCityScenarioConfig.class,
 	CreateNetworkFromSumo.class, CreateTransitScheduleFromGtfs.class, CreateVehicleTypes.class, DownSamplePopulation.class, ExtractHomeCoordinates.class,
 		ExtractRelevantFreightTrips.class, FixSubtourModes.class, GenerateShortDistanceTrips.class, InitLocationChoice.class, MergePopulations.class,
-		ResolveGridCoordinates.class, RunActivitySampling.class, TrajectoryToPlans.class, XYToLinks.class
+		ResolveGridCoordinates.class, RunActivitySampling.class, RunCountOptimization.class, TrajectoryToPlans.class, XYToLinks.class
 })
 @MATSimApplication.Analysis({
 		TravelTimeAnalysis.class, LinkStats.class, CheckPopulation.class

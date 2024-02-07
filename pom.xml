@@ -59,6 +59,12 @@
 			<groupId>org.matsim.contrib</groupId>
 			<artifactId>application</artifactId>
 			<version>${matsim.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>xerces</groupId>
+					<artifactId>xercesImpl</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<!-- Custom dependencies -->
@@ -87,6 +93,12 @@
 			<groupId>org.matsim.contrib</groupId>
 			<artifactId>vsp</artifactId>
 			<version>${matsim.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>xerces</groupId>
+					<artifactId>xercesImpl</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<dependency>
