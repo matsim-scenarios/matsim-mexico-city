@@ -52,13 +52,13 @@ public class CreateMexicoCityScenarioConfig implements MATSimAppCommand {
 			outputString = !dir.toString().endsWith("/") || !dir.toString().endsWith("\\") ? dir + "/" : dir.toString();
 		}
 
-		String countsPath = globFile(dir, "*counts_car." + year + "*").toString();
-		String facilitiesPath = globFile(dir, "*facilities*").toString();
-		String networkPath = globFile(dir, "*network-with-pt*").toString();
-		String plansPath = globFile(dir, "*plans*").toString();
-		String transitSchedulePath = globFile(dir, "*transitSchedule*").toString();
-		String transitVehiclesPath = globFile(dir, "*transitVehicles*").toString();
-		String vehicleTypesPath =globFile(dir, "*vehicle-types*").toString();
+		String countsPath = dir.relativize(globFile(dir, "*counts_car." + year + "*")).toString();
+		String facilitiesPath = dir.relativize(globFile(dir, "*facilities*")).toString();
+		String networkPath = dir.relativize(globFile(dir, "*network-with-pt*")).toString();
+		String plansPath = dir.relativize(globFile(dir, "*plans*")).toString();
+		String transitSchedulePath = dir.relativize(globFile(dir, "*transitSchedule*")).toString();
+		String transitVehiclesPath = dir.relativize(globFile(dir, "*transitVehicles*")).toString();
+		String vehicleTypesPath = dir.relativize(globFile(dir, "*vehicle-types*")).toString();
 
 		Config config = ConfigUtils.createConfig();
 
