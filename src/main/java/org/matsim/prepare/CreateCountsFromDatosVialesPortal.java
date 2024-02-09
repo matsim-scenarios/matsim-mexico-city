@@ -24,7 +24,6 @@ import org.matsim.counts.Count;
 import org.matsim.counts.Counts;
 import org.matsim.counts.CountsWriter;
 import org.opengis.referencing.operation.TransformException;
-import org.springframework.dao.DuplicateKeyException;
 import picocli.CommandLine;
 
 import java.io.IOException;
@@ -221,7 +220,7 @@ public class CreateCountsFromDatosVialesPortal implements MATSimAppCommand {
 				double carFactor = Double.parseDouble(rec.get("AUTOS")) / 100;
 
 				if (!stations.isEmpty() && stations.containsKey(id)) {
-					throw new DuplicateKeyException("Station id {} is not unique, please check data." + id);
+					throw new IllegalArgumentException("Station id {} is not unique, please check data." + id);
 				}
 
 				stations.put(id, new Station(id, coord,
