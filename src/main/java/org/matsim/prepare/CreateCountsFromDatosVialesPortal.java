@@ -104,6 +104,10 @@ public class CreateCountsFromDatosVialesPortal implements MATSimAppCommand {
 			Count<Link> carCount = car.createAndAddCount(s.linkAtomicReference().get().getId(), s.id);
 //			there are no hourly values in the count data. Therefore, the daily average for the year (TDPA) is set as daily value
 			carCount.createVolume(1, s.volumes.motorizedVolume);
+//			apparently MATSim needs values for each hour, so for the rest of the day 0 is added as count value
+			for (int i = 2; i <= 24; i++) {
+				carCount.createVolume(i, 0.);
+			}
 			carCount.setCoord(s.coord);
 		});
 
