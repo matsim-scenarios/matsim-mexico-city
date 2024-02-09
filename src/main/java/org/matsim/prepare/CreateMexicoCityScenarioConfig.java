@@ -165,7 +165,7 @@ public class CreateMexicoCityScenarioConfig implements MATSimAppCommand {
 			.filter(p -> p.getActivityType().contains("interaction"))
 			.forEach(p -> p.setTypicalDuration(1.));
 
-		Activities.addScoringParams(config, false);
+		Activities.addScoringParams(config, true);
 
 		relevantModes.forEach(m -> {
 //			iterate 2 times, first time to create missing modeParams, 2nd time to set correct values.

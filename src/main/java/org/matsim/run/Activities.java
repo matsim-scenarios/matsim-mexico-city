@@ -9,8 +9,6 @@ import org.matsim.core.config.groups.PlanCalcScoreConfigGroup;
 public enum Activities {
 	home,
 	other,
-//	TODO: delete -> will be changed to accomp_other
-	transport,
 	accomp_other,
 	edu(7, 1),
 	work(6, 21),

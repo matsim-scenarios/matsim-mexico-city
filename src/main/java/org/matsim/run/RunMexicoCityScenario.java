@@ -9,7 +9,6 @@ import org.matsim.application.analysis.traffic.LinkStats;
 import org.matsim.application.analysis.traffic.TravelTimeAnalysis;
 import org.matsim.application.options.SampleOptions;
 import org.matsim.application.prepare.CreateLandUseShp;
-import org.matsim.application.prepare.freight.tripExtraction.ExtractRelevantFreightTrips;
 import org.matsim.application.prepare.network.CleanNetwork;
 import org.matsim.application.prepare.network.CreateNetworkFromSumo;
 import org.matsim.application.prepare.population.*;
@@ -33,11 +32,11 @@ import java.util.List;
 
 @CommandLine.Command(header = ":: Open Mexico-City Scenario ::", version = RunMexicoCityScenario.VERSION, mixinStandardHelpOptions = true)
 @MATSimApplication.Prepare({
-	AdjustActivityToLinkDistances.class, CleanNetwork.class, CreateCommuterRelations.class, CreateCountsFromDatosVialesPortal.class, CreateLandUseShp.class,
-	CreateMATSimFacilities.class, CreateMetropolitanAreaPopulation.class, CreateMexicoCityPopulation.class, CreateMexicoCityScenarioConfig.class,
+	AdjustActivityToLinkDistances.class, CheckCarAvailability.class, CleanNetwork.class, CreateCommuterRelations.class, CreateCountsFromDatosVialesPortal.class,
+	CreateLandUseShp.class, CreateMATSimFacilities.class, CreateMetropolitanAreaPopulation.class, CreateMexicoCityPopulation.class, CreateMexicoCityScenarioConfig.class,
 	CreateNetworkFromSumo.class, CreateTransitScheduleFromGtfs.class, CreateVehicleTypes.class, DownSamplePopulation.class, ExtractHomeCoordinates.class,
-	ExtractRelevantFreightTrips.class, FixSubtourModes.class, GenerateShortDistanceTrips.class, InitLocationChoice.class, MergePopulations.class,
-	ResolveGridCoordinates.class, RunActivitySampling.class, RunCountOptimization.class, SelectPlansFromIndex.class, TrajectoryToPlans.class, XYToLinks.class
+	FixSubtourModes.class, GenerateShortDistanceTrips.class, InitLocationChoice.class, MergePopulations.class, ResolveGridCoordinates.class, RunActivitySampling.class,
+	RunCountOptimization.class, SelectPlansFromIndex.class, SplitActivityTypesDuration.class, XYToLinks.class
 })
 @MATSimApplication.Analysis({
 		TravelTimeAnalysis.class, LinkStats.class, CheckPopulation.class
@@ -48,7 +47,7 @@ public class RunMexicoCityScenario extends MATSimApplication {
 	public static final String VERSION = "1.0";
 
 	@CommandLine.Mixin
-	private final SampleOptions sample = new SampleOptions(25, 10, 1);
+	private final SampleOptions sample = new SampleOptions(1);
 
 
 	public RunMexicoCityScenario(@Nullable Config config) {
@@ -110,6 +109,7 @@ public class RunMexicoCityScenario extends MATSimApplication {
 //		TODO: setStrategyWeights to adequate values
 //		TODO: implement ptFareModule
 //		TODO: set correct money values in scoring Params -> they are in € right now.
+//		TODO: implement switch for bikes on net: delete teleported mode, add vehicle type?, add net mode, add to passingQ?
 
 		return config;
 	}

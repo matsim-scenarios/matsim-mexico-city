@@ -198,68 +198,50 @@ input/mexico-city-initial-1pct-plan-selection.csv: ./input/mexico-city-initial-1
 	 --metric $(ERROR_METRIC)\
 	 --k 10
 
-input/mexico-city.initial-1pct.LOG_ERROR.plans.xml.gz: input/v1.0/mexico-city-initial-1pct.plans.xml.gz input/mexico-city-initial-1pct-plan-selection.csv
+input/mexico-city-initial-1pct.LOG_ERROR.plans.xml.gz: input/v1.0/mexico-city-initial-1pct.plans.xml.gz input/mexico-city-initial-1pct-plan-selection.csv
 	$(sc) prepare select-plans-idx\
  	 --input $<\
  	 --csv $(word 2,$^)\
  	 --output $@\
  	 --exp-plans input/mexico-city-initial-1.0-1pct.experienced_plans.xml.gz
 
+input/v1.0/mexico-city-v1.0-1pct.input.plans.xml.gz: input/v1.0/mexico-city-initial-1pct.LOG_ERROR.plans.xml.gz
+	$(sc) prepare split-activity-types-duration\
+		--input $<\
+		--output $@
 
-# TODO: integrate filter-relevant-agents?
+	$(sc) prepare check-car-avail\
+		--input $@\
+		--output $@\
+		--mode walk
+
+	$(sc) prepare fix-subtour-modes\
+		--input $@\
+		--output $@\
+		--all-plans\
+		--coord-dist 100
+
+	$(sc) prepare xy-to-links\
+		--network input/v1.0/mexico-city-v1.0-network.xml.gz\
+		--input $@\
+		--output $@
+
+	$(sc) prepare extract-home-coordinates $@\
+		--csv input/v1.0/mexico-city-v1.0-homes.csv
+
+	$(sc) prepare downsample-population $@\
+		 --sample-size 0.01\
+		 --samples 0.001\
+
+check: input/v1.0/mexico-city-v1.0-1pct.input.plans.xml.gz
+	$(sc) analysis check-population $<\
+ 	 --input-crs $(CRS)\
+	 --shp ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/zmvm_2010/zmvm_2010_utm12n.shp\
+	 --shp-crs $(CRS)
+
 
 # TODO: prepare population class for adding income distr -> see LeipzigScenario
 
-
-
-
- ####################################### NOT SURE IF NEEDED: ##############################################################
-
-input/$V/prepare-25pct.plans.xml.gz:
-	$(sc) prepare trajectory-to-plans\
-	 --name prepare --sample-size 0.25 --output input/$V\
-	 --population ../shared-svn/projects/$N/matsim-input-files/population.xml.gz\
-	 --attributes  ../shared-svn/projects/$N/matsim-input-files/personAttributes.xml.gz
-
-	$(sc) prepare resolve-grid-coords\
-	 input/$V/prepare-25pct.plans.xml.gz\
-	 --input-crs $CRS\
-	 --grid-resolution 300\
-	 --landuse ../matsim-leipzig/scenarios/input/landuse/landuse.shp\
-	 --output $@
-
-input/$V/$N-$V-25pct.plans.xml.gz: input/freight-trips.xml.gz input/$V/$N-$V-network.xml.gz input/$V/prepare-25pct.plans.xml.gz
-	$(sc) prepare generate-short-distance-trips\
- 	 --population input/$V/prepare-25pct.plans.xml.gz\
- 	 --input-crs $CRS\
-	 --shp ../shared-svn/projects/$N/data/shp/$N.shp --shp-crs $CRS\
- 	 --num-trips 111111 # FIXME
-
-	$(sc) prepare adjust-activity-to-link-distances input/$V/prepare-25pct.plans-with-trips.xml.gz\
-	 --shp ../shared-svn/projects/$N/data/shp/$N.shp --shp-crs $CRS\
-     --scale 1.15\
-     --input-crs $CRS\
-     --network input/$V/$N-$V-network.xml.gz\
-     --output input/$V/prepare-25pct.plans-adj.xml.gz
-
-	$(sc) prepare xy-to-links --network input/$V/$N-$V-network.xml.gz --input input/$V/prepare-25pct.plans-adj.xml.gz --output $@
-
-	$(sc) prepare fix-subtour-modes --input $@ --output $@
-
-	$(sc) prepare merge-populations $@ $< --output $@
-
-	$(sc) prepare extract-home-coordinates $@ --csv input/$V/$N-$V-homes.csv
-
-	$(sc) prepare downsample-population $@\
-    	 --sample-size 0.25\
-    	 --samples 0.1 0.01\
-
-
-check: input/$V/$N-$V-25pct.plans.xml.gz
-	$(sc) analysis check-population $<\
- 	 --input-crs $CRS\
-	 --shp ../shared-svn/projects/$N/data/shp/$N.shp --shp-crs $CRS
-
 # Aggregated target
-prepare: input/$V/$N-$V-25pct.plans.xml.gz input/$V/$N-$V-network-with-pt.xml.gz
+prepare: input/v1.0/mexico-city-v1.0-1pct.input.plans.xml.gz input/v1.0/mexico-city-v1.0-network-with-pt.xml.gz
 	echo "Done"
