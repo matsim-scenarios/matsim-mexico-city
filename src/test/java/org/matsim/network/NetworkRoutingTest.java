@@ -18,7 +18,7 @@ import org.matsim.api.core.v01.population.PopulationFactory;
 import org.matsim.application.options.ShpOptions;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
-import org.matsim.core.config.groups.PlanCalcScoreConfigGroup;
+import org.matsim.core.config.groups.ScoringConfigGroup;
 import org.matsim.core.network.NetworkUtils;
 import org.matsim.core.network.algorithms.TransportModeNetworkFilter;
 import org.matsim.core.population.PopulationUtils;
@@ -42,7 +42,7 @@ import java.util.*;
 public class NetworkRoutingTest {
 
 	private final LeastCostPathCalculatorFactory leastCostPathCalculatorFactory = new SpeedyALTFactory();
-	private final TravelDisutility travelDisutility = TravelDisutilityUtils.createFreespeedTravelTimeAndDisutility(ConfigUtils.addOrGetModule(new Config(), PlanCalcScoreConfigGroup.class));
+	private final TravelDisutility travelDisutility = TravelDisutilityUtils.createFreespeedTravelTimeAndDisutility(ConfigUtils.addOrGetModule(new Config(), ScoringConfigGroup.class));
 	private final TravelTime travelTime = TravelTimeUtils.createFreeSpeedTravelTime();
 	private Map<String, RoutingModule> routingModules = new HashMap<>();
 	private ActivityFacilitiesFactory fac = FacilitiesUtils.createActivityFacilities().getFactory();

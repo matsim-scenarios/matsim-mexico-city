@@ -26,9 +26,9 @@ public class RunMexicoCityIntegrationTest {
 		config.qsim().setNumberOfThreads(1);
 		config.qsim().setFlowCapFactor(sampleSize);
 		config.qsim().setStorageCapFactor(sampleSize);
-		config.controler().setLastIteration(1);
-		config.controler().setOverwriteFileSetting(OutputDirectoryHierarchy.OverwriteFileSetting.deleteDirectoryIfExists);
-		config.controler().setOutputDirectory(outputPath.toString());
+		config.controller().setLastIteration(1);
+		config.controller().setOverwriteFileSetting(OutputDirectoryHierarchy.OverwriteFileSetting.deleteDirectoryIfExists);
+		config.controller().setOutputDirectory(outputPath.toString());
 //		TODO: create this plans file
 		config.plans().setInputFile("mexico-city-initial-" + sampleSize * 100 + "pct.plans.xml.gz");
 

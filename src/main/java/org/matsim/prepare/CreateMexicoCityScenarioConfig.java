@@ -62,11 +62,11 @@ public class CreateMexicoCityScenarioConfig implements MATSimAppCommand {
 
 		Config config = ConfigUtils.createConfig();
 
-		config.controler().setOutputDirectory("./output/mexico-city-1pct");
-		config.controler().setRoutingAlgorithmType(ControlerConfigGroup.RoutingAlgorithmType.SpeedyALT);
-		config.controler().setRunId("mexico-city-1pct");
-		config.controler().setWriteEventsInterval(100);
-		config.controler().setWritePlansInterval(100);
+		config.controller().setOutputDirectory("./output/mexico-city-1pct");
+		config.controller().setRoutingAlgorithmType(ControllerConfigGroup.RoutingAlgorithmType.SpeedyALT);
+		config.controller().setRunId("mexico-city-1pct");
+		config.controller().setWriteEventsInterval(100);
+		config.controller().setWritePlansInterval(100);
 
 		config.counts().setInputFile(countsPath);
 
@@ -80,35 +80,35 @@ public class CreateMexicoCityScenarioConfig implements MATSimAppCommand {
 
 		config.network().setInputFile(networkPath);
 
-		configurePlanCalcScoreModule(config, relevantModes);
+		configureScoringModule(config, relevantModes);
 
 		config.plans().setInputFile(plansPath);
 		config.plans().setRemovingUnneccessaryPlanAttributes(true);
 
-		configurePlansCalcRouteModule(config);
+		configureRoutingModule(config);
 
 		configureQsimModule(config);
 
-		config.strategy().setFractionOfIterationsToDisableInnovation(0.9);
-		config.strategy().clearStrategySettings();
+		config.replanning().setFractionOfIterationsToDisableInnovation(0.9);
+		config.replanning().clearStrategySettings();
 
-		StrategyConfigGroup.StrategySettings reRoute = new StrategyConfigGroup.StrategySettings();
+		ReplanningConfigGroup.StrategySettings reRoute = new ReplanningConfigGroup.StrategySettings();
 		reRoute.setStrategyName("ReRoute");
 		reRoute.setSubpopulation(SUBPOP_PERSON);
 
-		StrategyConfigGroup.StrategySettings changeExpBeta = new StrategyConfigGroup.StrategySettings();
+		ReplanningConfigGroup.StrategySettings changeExpBeta = new ReplanningConfigGroup.StrategySettings();
 		changeExpBeta.setStrategyName("ChangeExpBeta");
 		changeExpBeta.setSubpopulation(SUBPOP_PERSON);
 
-		StrategyConfigGroup.StrategySettings smc = new StrategyConfigGroup.StrategySettings();
+		ReplanningConfigGroup.StrategySettings smc = new ReplanningConfigGroup.StrategySettings();
 		smc.setStrategyName("SubtourModeChoice");
 		smc.setSubpopulation(SUBPOP_PERSON);
 
-		StrategyConfigGroup.StrategySettings timeAlloc = new StrategyConfigGroup.StrategySettings();
+		ReplanningConfigGroup.StrategySettings timeAlloc = new ReplanningConfigGroup.StrategySettings();
 		timeAlloc.setStrategyName("TimeAllocationMutator");
 		timeAlloc.setSubpopulation(SUBPOP_PERSON);
 
-		Set.of(reRoute, changeExpBeta, smc, timeAlloc).forEach(config.strategy()::addStrategySettings);
+		Set.of(reRoute, changeExpBeta, smc, timeAlloc).forEach(config.replanning()::addStrategySettings);
 
 		config.subtourModeChoice().setBehavior(SubtourModeChoice.Behavior.betweenAllAndFewerConstraints);
 		config.subtourModeChoice().setConsiderCarAvailability(true);
@@ -135,32 +135,32 @@ public class CreateMexicoCityScenarioConfig implements MATSimAppCommand {
 		return 0;
 	}
 
-	private static void configurePlansCalcRouteModule(Config config) {
-		config.plansCalcRoute().setAccessEgressType(PlansCalcRouteConfigGroup.AccessEgressType.accessEgressModeToLink);
-		config.plansCalcRoute().setNetworkModes(Set.of(TransportMode.car));
-		config.plansCalcRoute().clearTeleportedModeParams();
+	private static void configureRoutingModule(Config config) {
+		config.routing().setAccessEgressType(RoutingConfigGroup.AccessEgressType.accessEgressModeToLink);
+		config.routing().setNetworkModes(Set.of(TransportMode.car));
+		config.routing().clearTeleportedModeParams();
 
-		PlansCalcRouteConfigGroup.TeleportedModeParams walk = new PlansCalcRouteConfigGroup.TeleportedModeParams(TransportMode.walk);
+		RoutingConfigGroup.TeleportedModeParams walk = new RoutingConfigGroup.TeleportedModeParams(TransportMode.walk);
 		walk.setBeelineDistanceFactor(1.3);
 		walk.setTeleportedModeSpeed(1.0555556);
 
-		PlansCalcRouteConfigGroup.TeleportedModeParams bike = new PlansCalcRouteConfigGroup.TeleportedModeParams(TransportMode.bike);
+		RoutingConfigGroup.TeleportedModeParams bike = new RoutingConfigGroup.TeleportedModeParams(TransportMode.bike);
 		bike.setBeelineDistanceFactor(1.3);
 		bike.setTeleportedModeSpeed(3.1388889);
 
-		PlansCalcRouteConfigGroup.TeleportedModeParams taxibus = new PlansCalcRouteConfigGroup.TeleportedModeParams(MexicoCityUtils.TAXIBUS);
+		RoutingConfigGroup.TeleportedModeParams taxibus = new RoutingConfigGroup.TeleportedModeParams(MexicoCityUtils.TAXIBUS);
 		taxibus.setBeelineDistanceFactor(1.3);
 //		the speed for colectivo / taxibus is an assumption as there is almost no data on this transport mode
 		taxibus.setTeleportedModeSpeed(3.1388889);
 
-		Set.of(walk, bike, taxibus).forEach(config.plansCalcRoute()::addTeleportedModeParams);
+		Set.of(walk, bike, taxibus).forEach(config.routing()::addTeleportedModeParams);
 	}
 
-	private static void configurePlanCalcScoreModule(Config config, Set<String> relevantModes) {
-		config.planCalcScore().setFractionOfIterationsToStartScoreMSA(0.9);
-		config.planCalcScore().setWriteExperiencedPlans(true);
+	private static void configureScoringModule(Config config, Set<String> relevantModes) {
+		config.scoring().setFractionOfIterationsToStartScoreMSA(0.9);
+		config.scoring().setWriteExperiencedPlans(true);
 
-		config.planCalcScore().getActivityParams()
+		config.scoring().getActivityParams()
 			.stream()
 			.filter(p -> p.getActivityType().contains("interaction"))
 			.forEach(p -> p.setTypicalDuration(1.));
@@ -170,23 +170,23 @@ public class CreateMexicoCityScenarioConfig implements MATSimAppCommand {
 		relevantModes.forEach(m -> {
 //			iterate 2 times, first time to create missing modeParams, 2nd time to set correct values.
 			for (int i = 0; i <=1; i++) {
-				if (config.planCalcScore().getModes().containsKey(m)) {
+				if (config.scoring().getModes().containsKey(m)) {
 //				values come from Berlin output config. They have to be changed into mexico's currency later
 					if (m.equals(TransportMode.car)) {
-						config.planCalcScore().getModes().get(m).setDailyMonetaryConstant(-14.1);
-						config.planCalcScore().getModes().get(m).setMonetaryDistanceRate(-1.49E-4);
+						config.scoring().getModes().get(m).setDailyMonetaryConstant(-14.1);
+						config.scoring().getModes().get(m).setMonetaryDistanceRate(-1.49E-4);
 					} else if (m.equals(TransportMode.pt) || m.equals(MexicoCityUtils.TAXIBUS)) {
 //						colectivo / taxibus with equal values as pt
-						config.planCalcScore().getModes().get(m).setDailyMonetaryConstant(-3.);
+						config.scoring().getModes().get(m).setDailyMonetaryConstant(-3.);
 					}
 				} else {
-					PlanCalcScoreConfigGroup.ModeParams params = new PlanCalcScoreConfigGroup.ModeParams(m);
-					config.planCalcScore().addModeParams(params);
+					ScoringConfigGroup.ModeParams params = new ScoringConfigGroup.ModeParams(m);
+					config.scoring().addModeParams(params);
 				}
 			}
 		});
 		//		set all marginal ut of trav to 0, otherwise simulation will abort (vsp standards)
-		config.planCalcScore().getModes().values().forEach(m -> m.setMarginalUtilityOfTraveling(0.));
+		config.scoring().getModes().values().forEach(m -> m.setMarginalUtilityOfTraveling(0.));
 	}
 
 	private void configureQsimModule(Config config) {

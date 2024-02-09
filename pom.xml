@@ -14,7 +14,7 @@
 		<!-- snapshot == not recommended: rather use PR-labelled release!-->
 		<!-- FIXME: Decide on version -->
 <!--		<version>15.0-SNAPSHOT</version>-->
-		<version>16.0-PR2673</version>
+		<version>16.0-PR2918</version>
 	</parent>
 
 	<modelVersion>4.0.0</modelVersion>
@@ -120,17 +120,17 @@
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi</artifactId>
-			<version>5.2.3</version>
+			<version>5.2.4</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml</artifactId>
-			<version>5.2.3</version>
+			<version>5.2.4</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-scratchpad</artifactId>
-			<version>5.2.3</version>
+			<version>5.2.4</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.xmlbeans</groupId>
@@ -164,7 +164,7 @@
 		<dependency>
 			<groupId>de.topobyte</groupId>
 			<artifactId>osm4j-geometry</artifactId>
-			<version>1.2.0</version>
+			<version>1.3.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.optaplanner</groupId>

@@ -5,7 +5,7 @@ V := v1.0
 CRS := EPSG:4485
 
 MEMORY ?= 20G
-JAR :=  matsim-mexico-city-1.x-SNAPSHOT-ae2362d-dirty.jar
+JAR :=  matsim-mexico-city-1.x-SNAPSHOT-1a27eac-dirty.jar
 #JAR := matsim-mexico-city-*.jar
 
 ifndef SUMO_HOME
@@ -221,10 +221,11 @@ input/v1.0/mexico-city-v1.0-1pct.input.plans.xml.gz: input/v1.0/mexico-city-init
 		--all-plans\
 		--coord-dist 100
 
-	$(sc) prepare xy-to-links\
-		--network input/v1.0/mexico-city-v1.0-network.xml.gz\
-		--input $@\
-		--output $@
+# commented out due to bug when reading plans / activities with assigned facilityIds, see matsim-libs PR3106
+#	$(sc) prepare xy-to-links\
+#		--network input/v1.0/mexico-city-v1.0-network.xml.gz\
+#		--input $@\
+#		--output $@
 
 	$(sc) prepare extract-home-coordinates $@\
 		--csv input/v1.0/mexico-city-v1.0-homes.csv
@@ -233,6 +234,7 @@ input/v1.0/mexico-city-v1.0-1pct.input.plans.xml.gz: input/v1.0/mexico-city-init
 		 --sample-size 0.01\
 		 --samples 0.001\
 
+# this step does not fully work yet, because some activities do not have a coord yet -> see comments on prepare xy-to-links
 check: input/v1.0/mexico-city-v1.0-1pct.input.plans.xml.gz
 	$(sc) analysis check-population $<\
  	 --input-crs $(CRS)\
