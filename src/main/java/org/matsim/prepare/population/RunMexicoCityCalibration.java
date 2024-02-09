@@ -251,7 +251,7 @@ public class RunMexicoCityCalibration extends MATSimApplication {
 	private void configureSimwrapperCfgGroup(Config config) {
 		SimWrapperConfigGroup sw = ConfigUtils.addOrGetModule(config, SimWrapperConfigGroup.class);
 
-		sw.defaultParams().mapCenter = "13.39,52.51";
+		sw.defaultParams().mapCenter = "19.43,-99.13";
 		sw.defaultParams().mapZoomLevel = 9.1;
 		sw.defaultParams().shp = "./area/area.shp";
 

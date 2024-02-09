@@ -24,6 +24,7 @@ import org.matsim.prepare.CreateCountsFromDatosVialesPortal;
 import org.matsim.prepare.CreateMexicoCityScenarioConfig;
 import org.matsim.prepare.CreateVehicleTypes;
 import org.matsim.prepare.opt.RunCountOptimization;
+import org.matsim.prepare.opt.SelectPlansFromIndex;
 import org.matsim.prepare.population.*;
 import picocli.CommandLine;
 
@@ -36,7 +37,7 @@ import java.util.List;
 	CreateMATSimFacilities.class, CreateMetropolitanAreaPopulation.class, CreateMexicoCityPopulation.class, CreateMexicoCityScenarioConfig.class,
 	CreateNetworkFromSumo.class, CreateTransitScheduleFromGtfs.class, CreateVehicleTypes.class, DownSamplePopulation.class, ExtractHomeCoordinates.class,
 	ExtractRelevantFreightTrips.class, FixSubtourModes.class, GenerateShortDistanceTrips.class, InitLocationChoice.class, MergePopulations.class,
-	ResolveGridCoordinates.class, RunActivitySampling.class, RunCountOptimization.class, TrajectoryToPlans.class, XYToLinks.class
+	ResolveGridCoordinates.class, RunActivitySampling.class, RunCountOptimization.class, SelectPlansFromIndex.class, TrajectoryToPlans.class, XYToLinks.class
 })
 @MATSimApplication.Analysis({
 		TravelTimeAnalysis.class, LinkStats.class, CheckPopulation.class
@@ -55,7 +56,7 @@ public class RunMexicoCityScenario extends MATSimApplication {
 	}
 
 	public RunMexicoCityScenario() {
-		super(String.format("input/v%s/template-v%s-1pct.config.xml", VERSION, VERSION));
+		super(String.format("input/v%s/mexico-city-v%s-1pct.input.config.xml", VERSION, VERSION));
 	}
 
 	public static void main(String[] args) {

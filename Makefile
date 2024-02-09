@@ -5,7 +5,7 @@ V := v1.0
 CRS := EPSG:4485
 
 MEMORY ?= 20G
-JAR :=  matsim-mexico-city-1.x-SNAPSHOT-4b7bf5f-dirty.jar
+JAR :=  matsim-mexico-city-1.x-SNAPSHOT-ae2362d-dirty.jar
 #JAR := matsim-mexico-city-*.jar
 
 ifndef SUMO_HOME
@@ -197,6 +197,16 @@ input/mexico-city-initial-1pct-plan-selection.csv: ./input/mexico-city-initial-1
 	 --output $@\
 	 --metric $(ERROR_METRIC)\
 	 --k 10
+
+input/mexico-city.initial-1pct.LOG_ERROR.plans.xml.gz: input/v1.0/mexico-city-initial-1pct.plans.xml.gz input/mexico-city-initial-1pct-plan-selection.csv
+	$(sc) prepare select-plans-idx\
+ 	 --input $<\
+ 	 --csv $(word 2,$^)\
+ 	 --output $@\
+ 	 --exp-plans input/mexico-city-initial-1.0-1pct.experienced_plans.xml.gz
+
+
+# TODO: integrate filter-relevant-agents?
 
 # TODO: prepare population class for adding income distr -> see LeipzigScenario
 
