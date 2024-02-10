@@ -42,7 +42,6 @@ import org.matsim.core.scoring.ScoringFunctionFactory;
 import org.matsim.core.scoring.SumScoringFunction;
 import org.matsim.core.scoring.functions.*;
 import org.matsim.core.utils.geometry.CoordUtils;
-import org.matsim.prepare.MexicoCityUtils;
 import org.matsim.prepare.opt.RunCountOptimization;
 import org.matsim.run.Activities;
 import org.matsim.run.RunMexicoCityScenario;
