@@ -31,7 +31,7 @@ import java.util.List;
 
 @CommandLine.Command(header = ":: Open Mexico-City Scenario ::", version = RunMexicoCityScenario.VERSION, mixinStandardHelpOptions = true)
 @MATSimApplication.Prepare({
-	AdjustActivityToLinkDistances.class, CheckCarAvailability.class, CleanNetwork.class, CreateCommuterRelations.class, CreateCountsFromDatosVialesPortal.class,
+	AdjustActivityToLinkDistances.class, ChangeModeNames.class, CheckCarAvailability.class, CleanNetwork.class, CreateCommuterRelations.class, CreateCountsFromDatosVialesPortal.class,
 	CreateLandUseShp.class, CreateMATSimFacilities.class, CreateMetropolitanAreaPopulation.class, CreateMexicoCityPopulation.class, CreateMexicoCityScenarioConfig.class,
 	CreateNetworkFromSumo.class, CreateTransitScheduleFromGtfs.class, CreateVehicleTypes.class, DownSamplePopulation.class, ExtractHomeCoordinates.class,
 	FixSubtourModes.class, GenerateShortDistanceTrips.class, InitLocationChoice.class, MergePopulations.class, ResolveGridCoordinates.class, RunActivitySampling.class,
@@ -54,7 +54,7 @@ public class RunMexicoCityScenario extends MATSimApplication {
 	}
 
 	public RunMexicoCityScenario() {
-		super(String.format("input/v%s/mexico-city-v%s-1pct.input.config.xml", VERSION, VERSION));
+		super(String.format("https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v%s/input/mexico-city-v%s-1pct.input.config.xml", VERSION, VERSION));
 	}
 
 	public static void main(String[] args) {
@@ -105,7 +105,7 @@ public class RunMexicoCityScenario extends MATSimApplication {
 		config.routing().setAccessEgressType(RoutingConfigGroup.AccessEgressType.accessEgressModeToLink);
 
 		// TODO: Config options
-//		TODO: setStrategyWeights to adequate values
+//		TODO: setStrategyWeights to adequate values -> also in createConfigClass
 //		TODO: implement ptFareModule
 //		TODO: set correct money values in scoring Params -> they are in € right now.
 //		TODO: implement switch for bikes on net: delete teleported mode, add vehicle type?, add net mode, add to passingQ?

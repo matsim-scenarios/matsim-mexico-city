@@ -210,6 +210,10 @@ input/v1.0/mexico-city-v1.0-1pct.input.plans.xml.gz: input/v1.0/mexico-city-init
 		--input $<\
 		--output $@
 
+	$(sc) prepare change-mode-names\
+		--input $@\
+		--output $@
+
 	$(sc) prepare check-car-avail\
 		--input $@\
 		--output $@\

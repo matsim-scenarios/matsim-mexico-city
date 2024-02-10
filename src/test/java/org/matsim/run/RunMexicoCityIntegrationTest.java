@@ -13,6 +13,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class RunMexicoCityIntegrationTest {
 
+	String URL = "https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/";
+
 	@Test
 	public void runPoint1PctIntegrationTest() {
 
@@ -20,7 +22,7 @@ public class RunMexicoCityIntegrationTest {
 
 		Path outputPath = Path.of("output/it-" + sampleSize * 100 + "pct");
 
-		Config config = ConfigUtils.loadConfig("input/v1.0/mexico-city-v1.0-1pct.input.config.xml");
+		Config config = ConfigUtils.loadConfig(URL + "mexico-city-v1.0-1pct.input.config.xml");
 
 		config.global().setNumberOfThreads(1);
 		config.qsim().setNumberOfThreads(1);
@@ -29,12 +31,12 @@ public class RunMexicoCityIntegrationTest {
 		config.controller().setLastIteration(1);
 		config.controller().setOverwriteFileSetting(OutputDirectoryHierarchy.OverwriteFileSetting.deleteDirectoryIfExists);
 		config.controller().setOutputDirectory(outputPath.toString());
-//		TODO: create this plans file
-		config.plans().setInputFile("mexico-city-initial-" + sampleSize * 100 + "pct.plans.xml.gz");
+		config.plans().setInputFile(URL + "mexico-city-v1.0-" + sampleSize * 100 + "pct.input.plans.xml.gz");
+		config.replanning().getStrategySettings().forEach(s -> s.setWeight(0.1));
 
 		ConfigUtils.addOrGetModule(config, SimWrapperConfigGroup.class).defaultDashboards = SimWrapperConfigGroup.Mode.disabled;
 
-		assert MATSimApplication.execute(RunMexicoCityScenario.class) == 0 : "Must return non error code";
+		assert MATSimApplication.execute(RunMexicoCityScenario.class, config) == 0 : "Must return non error code";
 
 		assertThat(outputPath)
 			.exists()

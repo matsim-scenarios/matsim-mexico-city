@@ -264,7 +264,7 @@ public class RunMexicoCityCalibration extends MATSimApplication {
 	@Override
 	protected void prepareScenario(Scenario scenario) {
 
-		changeModeNames(scenario.getPopulation());
+		ChangeModeNames.changeNames(scenario.getPopulation());
 
 		if (mode == CalibrationMode.CADYTS)
 			// each initial plan needs a separate type, so it won't be removed
@@ -394,28 +394,6 @@ public class RunMexicoCityCalibration extends MATSimApplication {
 				"--remove-unselected-plans"
 			)
 		);
-	}
-
-	/**
-	 * change mode names from act sampling to real matsim transport modes.
-	 */
-	protected void changeModeNames(Population population) {
-
-//		yy maybe this method should be put into the run class / utils class
-		for (Person p : population.getPersons().values()) {
-			for (Plan plan : p.getPlans()){
-				List<Leg> legs = TripStructureUtils.getLegs(plan);
-				for (Leg l : legs) {
-					if (l.getMode().equals("colectivo")) {
-						l.setMode(MexicoCityUtils.TAXIBUS);
-					} else if (l.getMode().equals(TransportMode.motorcycle)) {
-						l.setMode(TransportMode.car);
-					} else if (l.getMode().equals(TransportMode.ride)) {
-						l.setMode(TransportMode.walk);
-					}
-				}
-			}
-		}
 	}
 
 	/**
