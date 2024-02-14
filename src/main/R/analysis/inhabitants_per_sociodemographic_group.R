@@ -76,7 +76,6 @@ startsWithDigit <- function(num, digit) {
   return(first_char == as.character(digit))
 }
 
-# TODO: filter for zmvm
 enigh_CDMX <- enigh2018 %>%
   filter(startsWithDigit(folioviv, 9))
 
