@@ -245,9 +245,6 @@ check: input/v1.0/mexico-city-v1.0-1pct.input.plans.xml.gz
 	 --shp ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/zmvm_2010/zmvm_2010_utm12n.shp\
 	 --shp-crs $(CRS)
 
-
-# TODO: prepare population class for adding income distr -> see LeipzigScenario
-
 # Aggregated target
 prepare: input/v1.0/mexico-city-v1.0-1pct.input.plans.xml.gz input/v1.0/mexico-city-v1.0-network-with-pt.xml.gz
 	echo "Done"

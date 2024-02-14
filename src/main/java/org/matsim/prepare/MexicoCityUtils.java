@@ -49,6 +49,9 @@ public final class MexicoCityUtils {
 	public static final String ECONOMIC_STATUS = "economic_status";
 	public static final String HOUSEHOLD_SIZE = "household_size";
 	public static final String TAXIBUS = "taxibus";
+//	MXN / € 2017: https://www.exchange-rates.org/es/historial/eur-mxn-2017
+//	-> avg of 2017: 1€=21.344 MXN
+	public static final Double PESO_EURO = 21.344;
 
 	//do not instantiate
 	private MexicoCityUtils() {

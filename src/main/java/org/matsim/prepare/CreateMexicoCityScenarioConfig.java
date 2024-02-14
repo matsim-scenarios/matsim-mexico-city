@@ -11,7 +11,10 @@ import org.matsim.run.RunMexicoCityScenario;
 import picocli.CommandLine;
 
 import java.nio.file.Path;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.matsim.application.ApplicationUtils.globFile;
 
@@ -160,6 +163,20 @@ public class CreateMexicoCityScenarioConfig implements MATSimAppCommand {
 		config.scoring().setFractionOfIterationsToStartScoreMSA(0.9);
 		config.scoring().setWriteExperiencedPlans(true);
 
+//		marginalUtilityOfMoney germany: 1ut/1€ = 1 -> mx: marginalUtilityOfMoney / PESO_EURO
+		double margUtilityOfMoneyMx = config.scoring().getMarginalUtilityOfMoney() / MexicoCityUtils.PESO_EURO;
+
+		DecimalFormat df = new DecimalFormat("0.000");
+
+		DecimalFormatSymbols symbols = new DecimalFormatSymbols();
+		symbols.setDecimalSeparator('.');
+
+		df.setDecimalFormatSymbols(symbols);
+
+		margUtilityOfMoneyMx = Double.parseDouble(df.format(margUtilityOfMoneyMx));
+
+		config.scoring().setMarginalUtilityOfMoney(margUtilityOfMoneyMx);
+
 		config.scoring().getActivityParams()
 			.stream()
 			.filter(p -> p.getActivityType().contains("interaction"))
@@ -171,13 +188,20 @@ public class CreateMexicoCityScenarioConfig implements MATSimAppCommand {
 //			iterate 2 times, first time to create missing modeParams, 2nd time to set correct values.
 			for (int i = 0; i <=1; i++) {
 				if (config.scoring().getModes().containsKey(m)) {
-//				values come from Berlin output config. They have to be changed into mexico's currency later
+//				values come from german scenarios
 					if (m.equals(TransportMode.car)) {
-						config.scoring().getModes().get(m).setDailyMonetaryConstant(-14.1);
-						config.scoring().getModes().get(m).setMonetaryDistanceRate(-1.49E-4);
-					} else if (m.equals(TransportMode.pt) || m.equals(MexicoCityUtils.TAXIBUS)) {
-//						colectivo / taxibus with equal values as pt
-						config.scoring().getModes().get(m).setDailyMonetaryConstant(-3.);
+						double dailyMonetaryConstantCarMx = -5.3 * MexicoCityUtils.PESO_EURO;
+						double monetaryDistanceRateCarMx = -2.0E-4 * MexicoCityUtils.PESO_EURO;
+
+						config.scoring().getModes().get(m).setDailyMonetaryConstant(dailyMonetaryConstantCarMx);
+						config.scoring().getModes().get(m).setMonetaryDistanceRate(monetaryDistanceRateCarMx);
+					} else if (m.equals(TransportMode.pt)) {
+						double avgPtTicketPrice = Double.parseDouble(df.format(calcPtDailyMonetaryConstant()));
+
+						config.scoring().getModes().get(m).setDailyMonetaryConstant(avgPtTicketPrice);
+					} else if (m.equals(MexicoCityUtils.TAXIBUS)) {
+//						mean taxibus rides per day: 2 -> see analysis class eod2017_trip_analysis.R
+						config.scoring().getModes().get(m).setDailyMonetaryConstant(-7. * 2);
 					}
 				} else {
 					ScoringConfigGroup.ModeParams params = new ScoringConfigGroup.ModeParams(m);
@@ -187,6 +211,33 @@ public class CreateMexicoCityScenarioConfig implements MATSimAppCommand {
 		});
 		//		set all marginal ut of trav to 0, otherwise simulation will abort (vsp standards)
 		config.scoring().getModes().values().forEach(m -> m.setMarginalUtilityOfTraveling(0.));
+	}
+
+	private static double calcPtDailyMonetaryConstant() {
+//		official prices set by the mexican secretary of mobility (SEMOVI):
+//		https://www.semovi.cdmx.gob.mx/tramites-y-servicios/transporte-de-pasajeros/nuevas-tarifas-de-transporte-publico-vigentes
+
+		Map<String, Double> ptTicketCosts = new HashMap<>();
+		ptTicketCosts.put("metrobus", 6.);
+		ptTicketCosts.put("trolebus", 4.);
+		ptTicketCosts.put("trenLigero", 3.);
+		ptTicketCosts.put("troleBusCuTlahuac", 2.);
+		ptTicketCosts.put("troleBusElevado", 7.);
+		ptTicketCosts.put("metro", 5.);
+		ptTicketCosts.put("servicioOrdinario", 7.5);
+		ptTicketCosts.put("servicioEjecutivo", 8.);
+		ptTicketCosts.put("rtp_ordinario", 2.);
+		ptTicketCosts.put("rtp_expreso", 4.);
+		ptTicketCosts.put("rtp_ecobus", 5.);
+		ptTicketCosts.put("rtp_nochebus", 7.);
+		ptTicketCosts.put("cablebus", 7.);
+
+		AtomicReference<Double> sum = new AtomicReference<>(0.);
+
+		ptTicketCosts.values().forEach(d -> sum.updateAndGet(v -> (v + d)));
+
+//		mean pt rides per day: 2 -> see analysis class eod2017_trip_analysis.R
+		return sum.get() / ptTicketCosts.size() * -2;
 	}
 
 	private void configureQsimModule(Config config) {
