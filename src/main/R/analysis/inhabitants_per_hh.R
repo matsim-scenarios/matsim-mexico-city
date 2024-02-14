@@ -1,11 +1,9 @@
 library(tidyverse)
 library(dplyr)
 
-setwd("~/")
-setwd("./public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/")
 
 # helper script to calculate the number of inhabitants per household in ZMVM based on EOD2017 data
-vv <- read.csv2(unzip("eod_2017_csv.zip", "tvivienda_eod2017/conjunto_de_datos/tvivienda.csv"),sep=",")
+vv <- read.csv2("../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/data-scenario-generation/data-input-eod2017-bundled/tvivienda.csv",sep=",")
 
 # p1_1 -> survey question on how many persons live in the hh
 vv_real <- vv %>% 
