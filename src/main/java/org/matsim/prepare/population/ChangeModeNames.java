@@ -40,7 +40,7 @@ public class ChangeModeNames implements MATSimAppCommand {
 		return 0;
 	}
 
-	static void changeNames(Population population) {
+	public static void changeNames(Population population) {
 		for (Person p : population.getPersons().values()) {
 			for (Plan plan : p.getPlans()){
 				List<Leg> legs = TripStructureUtils.getLegs(plan);

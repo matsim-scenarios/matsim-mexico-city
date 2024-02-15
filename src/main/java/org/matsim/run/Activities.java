@@ -65,6 +65,7 @@ public enum Activities {
 		}
 
 		config.scoring().addActivityParams(new ScoringConfigGroup.ActivityParams("car interaction").setTypicalDuration(1));
+		config.scoring().addActivityParams(new ScoringConfigGroup.ActivityParams("other").setTypicalDuration((double) 600 * 3));
 	}
 
 }
