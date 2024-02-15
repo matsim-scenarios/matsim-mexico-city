@@ -190,17 +190,26 @@ public class CreateMexicoCityScenarioConfig implements MATSimAppCommand {
 //			iterate 2 times, first time to create missing modeParams, 2nd time to set correct values.
 			for (int i = 0; i <=1; i++) {
 				if (config.scoring().getModes().containsKey(m)) {
-//				values for car cost calculated based on https://www.eleconomista.com.mx/finanzaspersonales/Taxis-por-apps-vs-automovil-propio-Cual-me-conviene-20220526-0110.html
+//				1) values for car cost calculated based on https://www.eleconomista.com.mx/finanzaspersonales/Taxis-por-apps-vs-automovil-propio-Cual-me-conviene-20220526-0110.html
 //				for 2022: yearly car fix cost = 29134 MXN -> daily veh fix cost 79.82 MXN
 //				based on accumulated inflation from 2017 to 2022 the equivalent for 2017 can be calculated https://www.dineroeneltiempo.com/inflacion/peso-mexicano?valor=1&ano1=2017&ano2=2022
 //				cost 2017: 79.82 / (1 + accumulated inflation 2017-2022 (0.2818) => 62.27 MNX / day
 //				for distance cost same approach: 2022 yearly distance cost = 33675 MXN; when on avg mexicans travel 15000km per year, 2022 cost per m = 0.002245
 //				2017 equivalent: 0.00175 MXN / m
-					if (m.equals(TransportMode.car)) {
-						double dailyMonetaryConstantCarMx = -79.82;
-						double monetaryDistanceRateCarMx = -0.00175;
 
-						config.scoring().getModes().get(m).getComments().put("carCostParamCalculation", "For the calculation of dailyMonetaryConstant and monetaryDistanceRate for car see class CreateMexicoCityScenarioConfig.");
+//				2) based on ENIGH2018 (National Household Income and Expenses Survey, Mexico) p. 20 cuadro14 https://www.inegi.org.mx/contenidos/programas/enigh/nc/2018/doc/enigh2018_ns_nota_tecnica.pdf
+//				in general, the expenses in urban areas are higher than the national mean values, this also goes for transport cost.
+//				This model displays the urban area of Mexico City + surroundings, therefore, a factor will be applied to the car cost:
+//				trimestral transport expenses urban (7168) / trimestral transport expenses national (6369) = 1.125
+
+					if (m.equals(TransportMode.car)) {
+						double urbanFactor = 7168. / 6369.;
+						double dailyMonetaryConstantCarMx = -62.27 * urbanFactor;
+						double monetaryDistanceRateCarMx = -0.00175 * urbanFactor;
+
+						config.scoring().getModes().get(m).getComments().replace("dailyMonetaryConstant",
+							config.scoring().getModes().get(m).getComments().get("dailyMonetaryConstant") +
+								" For the calculation of dailyMonetaryConstant and monetaryDistanceRate for car see class CreateMexicoCityScenarioConfig.");
 
 						config.scoring().getModes().get(m).setDailyMonetaryConstant(dailyMonetaryConstantCarMx);
 						config.scoring().getModes().get(m).setMonetaryDistanceRate(monetaryDistanceRateCarMx);
