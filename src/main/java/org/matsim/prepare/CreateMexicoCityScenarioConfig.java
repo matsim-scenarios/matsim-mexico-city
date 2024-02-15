@@ -21,7 +21,7 @@ import static org.matsim.application.ApplicationUtils.globFile;
 @CommandLine.Command(name = "config", description = "Create a MATSim config from scratch and fill it with scenario specific values.")
 public class CreateMexicoCityScenarioConfig implements MATSimAppCommand {
 
-	@CommandLine.Option(names = "--input-directory", description = "path to directory with config inputs. Plans, facilities, counts etc.", required = true)
+	@CommandLine.Option(names = "--input-directory", description = "path to directory with config inputs. Plans, facilities, counts etc. Can be a URL, too.", required = true)
 	private Path dir;
 
 	@CommandLine.Option(names = "--sample-size", description = "Scenario sample size. Typically 1, 10 or 25.", defaultValue = "1")
@@ -33,10 +33,12 @@ public class CreateMexicoCityScenarioConfig implements MATSimAppCommand {
 	@CommandLine.Option(names = "--year", description = "year of count data", defaultValue = "2017")
 	int year;
 
-	@CommandLine.Option(names = "--output-directory", description = "output directory")
+	@CommandLine.Option(names = "--output-directory", description = "output directory", required = true)
 	Path outputPath;
 
 	private static final String SUBPOP_PERSON = "person";
+
+	private String url = "https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/";
 
 	public static void main(String[] args) {
 		new CreateMexicoCityScenarioConfig().execute(args);
@@ -71,21 +73,21 @@ public class CreateMexicoCityScenarioConfig implements MATSimAppCommand {
 		config.controller().setWriteEventsInterval(100);
 		config.controller().setWritePlansInterval(100);
 
-		config.counts().setInputFile(countsPath);
+		config.counts().setInputFile(url + countsPath);
 
 		config.facilities().setFacilitiesSource(FacilitiesConfigGroup.FacilitiesSource.fromFile);
-		config.facilities().setInputFile(facilitiesPath);
+		config.facilities().setInputFile(url + facilitiesPath);
 
 		config.global().setCoordinateSystem(MexicoCityUtils.CRS);
 		config.global().setNumberOfThreads(14);
 		config.global().setDefaultDelimiter(",");
 		config.global().setInsistingOnDeprecatedConfigVersion(false);
 
-		config.network().setInputFile(networkPath);
+		config.network().setInputFile(url + networkPath);
 
 		configureScoringModule(config, relevantModes);
 
-		config.plans().setInputFile(plansPath);
+		config.plans().setInputFile(url + plansPath);
 		config.plans().setRemovingUnneccessaryPlanAttributes(true);
 
 		configureRoutingModule(config);
@@ -119,16 +121,16 @@ public class CreateMexicoCityScenarioConfig implements MATSimAppCommand {
 		config.subtourModeChoice().setModes(new String[]{String.valueOf(relevantModes)});
 		config.subtourModeChoice().setProbaForRandomSingleTripMode(0.5);
 
-		config.transit().setTransitScheduleFile(transitSchedulePath);
+		config.transit().setTransitScheduleFile(url + transitSchedulePath);
 		config.transit().setUseTransit(true);
-		config.transit().setVehiclesFile(transitVehiclesPath);
+		config.transit().setVehiclesFile(url + transitVehiclesPath);
 
 //		increase stepsize as cdmx is a big city
 		config.transitRouter().setExtensionRadius(500.);
 		config.transitRouter().setMaxBeelineWalkConnectionDistance(500.);
 		config.transitRouter().setSearchRadius(1500.);
 
-		config.vehicles().setVehiclesFile(vehicleTypesPath);
+		config.vehicles().setVehiclesFile(url + vehicleTypesPath);
 
 		config.vspExperimental().setVspDefaultsCheckingLevel(VspExperimentalConfigGroup.VspDefaultsCheckingLevel.abort);
 
@@ -188,10 +190,17 @@ public class CreateMexicoCityScenarioConfig implements MATSimAppCommand {
 //			iterate 2 times, first time to create missing modeParams, 2nd time to set correct values.
 			for (int i = 0; i <=1; i++) {
 				if (config.scoring().getModes().containsKey(m)) {
-//				values come from german scenarios
+//				values for car cost calculated based on https://www.eleconomista.com.mx/finanzaspersonales/Taxis-por-apps-vs-automovil-propio-Cual-me-conviene-20220526-0110.html
+//				for 2022: yearly car fix cost = 29134 MXN -> daily veh fix cost 79.82 MXN
+//				based on accumulated inflation from 2017 to 2022 the equivalent for 2017 can be calculated https://www.dineroeneltiempo.com/inflacion/peso-mexicano?valor=1&ano1=2017&ano2=2022
+//				cost 2017: 79.82 / (1 + accumulated inflation 2017-2022 (0.2818) => 62.27 MNX / day
+//				for distance cost same approach: 2022 yearly distance cost = 33675 MXN; when on avg mexicans travel 15000km per year, 2022 cost per m = 0.002245
+//				2017 equivalent: 0.00175 MXN / m
 					if (m.equals(TransportMode.car)) {
-						double dailyMonetaryConstantCarMx = -5.3 * MexicoCityUtils.PESO_EURO;
-						double monetaryDistanceRateCarMx = -2.0E-4 * MexicoCityUtils.PESO_EURO;
+						double dailyMonetaryConstantCarMx = -79.82;
+						double monetaryDistanceRateCarMx = -0.00175;
+
+						config.scoring().getModes().get(m).getComments().put("carCostParamCalculation", "For the calculation of dailyMonetaryConstant and monetaryDistanceRate for car see class CreateMexicoCityScenarioConfig.");
 
 						config.scoring().getModes().get(m).setDailyMonetaryConstant(dailyMonetaryConstantCarMx);
 						config.scoring().getModes().get(m).setMonetaryDistanceRate(monetaryDistanceRateCarMx);
