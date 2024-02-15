@@ -22,7 +22,7 @@ public class RunMexicoCityIntegrationTest {
 
 		Path outputPath = Path.of("output/it-" + sampleSize * 100 + "pct");
 
-		Config config = ConfigUtils.loadConfig(URL + "mexico-city-v1.0-1pct.input.config.xml");
+		Config config = ConfigUtils.loadConfig("input/v1.0/mexico-city-v1.0-1pct.input.config.xml");
 
 		config.global().setNumberOfThreads(1);
 		config.qsim().setNumberOfThreads(1);

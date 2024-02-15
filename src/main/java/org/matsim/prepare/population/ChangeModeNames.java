@@ -40,6 +40,9 @@ public class ChangeModeNames implements MATSimAppCommand {
 		return 0;
 	}
 
+	/**
+	 * Apply the changes of mode names.
+	 */
 	public static void changeNames(Population population) {
 		for (Person p : population.getPersons().values()) {
 			for (Plan plan : p.getPlans()){
