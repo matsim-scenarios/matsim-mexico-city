@@ -11,6 +11,8 @@ import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.TransportMode;
 import org.matsim.api.core.v01.network.Link;
+import org.matsim.api.core.v01.population.Leg;
+import org.matsim.api.core.v01.population.Person;
 import org.matsim.application.MATSimApplication;
 import org.matsim.application.analysis.CheckPopulation;
 import org.matsim.application.analysis.traffic.LinkStats;
@@ -161,7 +163,7 @@ public class RunMexicoCityScenario extends MATSimApplication {
 
 		ChangeModeNames.changeNames(scenario.getPopulation());
 
-//		reduce link capacities due to missing freight traffic in this scenario
+//		reduce link capacities to compensate missing freight traffic in this scenario
 //		avg freight percentage of count stations: 0.1029 -> see class freight_volume_analysis.R
 		double freightPct = 0.1029;
 		for (Link link : scenario.getNetwork().getLinks().values()) {
@@ -183,6 +185,9 @@ public class RunMexicoCityScenario extends MATSimApplication {
 		}
 
 		if (bike) {
+//			TODO: bike net routes cannot be found?! -> clean plans? Check some expamples. Are those agents outside of CDMX where there are (supposedly) no bike roads
+
+
 //			add bike vehicle type if missing
 			Id<VehicleType> bikeTypeId = Id.create(TransportMode.bike, VehicleType.class);
 
