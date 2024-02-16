@@ -95,19 +95,19 @@ input/first-network-with-pt.xml.gz: input/first-network.xml.gz
 	$(sc) prepare transit-from-gtfs --network $<\
 	 --output=input/\
 	 --name $N-$V --date "2021-03-09" --target-crs $(CRS) \
-	 ../../public-svn/matsim/scenarios/countries/mx/$N/$N-$V/input/gtfs_cdmx_2020-09-15.zip
+	 ../../public-svn/matsim/scenarios/countries/mx/$N/$N-$V/input/data-scenario-generation/gtfs_cdmx_2020-09-15.zip
 
 
 ############################################ 2) POPULATION CREATION ###########################################################
 
-input/first-population-cdmx-only-1pct-homeLocOnly.plans.xml.gz: ..\..\public-svn\matsim\scenarios\countries\mx\mexico-city\mexico-city-v1.0\input\manzanas_censo2020\manzanas_censo2020_utm12n.shp
+input/first-population-cdmx-only-1pct-homeLocOnly.plans.xml.gz: ..\..\public-svn\matsim\scenarios\countries\mx\mexico-city\mexico-city-v1.0\input\data-scenario-generation/manzanas_censo2020\manzanas_censo2020_utm12n.shp
 	$(sc) prepare mexico-city-population\
 		--shp $<\
 		--output $@
 
-input/first-population-zmvm-without-cdmx-1pct-homeLocOnly.plans.xml.gz: ..\..\public-svn\matsim\scenarios\countries\mx\mexico-city\mexico-city-v1.0\input\zmvm_2010\zmvm_2010_utm12n.shp
+input/first-population-zmvm-without-cdmx-1pct-homeLocOnly.plans.xml.gz: ..\..\public-svn\matsim\scenarios\countries\mx\mexico-city\mexico-city-v1.0\input\data-scenario-generation/zmvm_2010\zmvm_2010_utm12n.shp
 	$(sc) prepare zmvm-population\
-		--input ..\..\public-svn\matsim\scenarios\countries\mx\mexico-city\mexico-city-v1.0\input\iter_13_cpv2020\conjunto_de_datos\conjunto_de_datos_iter_13CSV20.csv,..\..\public-svn\matsim\scenarios\countries\mx\mexico-city\mexico-city-v1.0\input\iter_15_cpv2020\conjunto_de_datos\conjunto_de_datos_iter_15CSV20.csv\
+		--input ..\..\public-svn\matsim\scenarios\countries\mx\mexico-city\mexico-city-v1.0\input\data-scenario-generation/iter_13_cpv2020\conjunto_de_datos\conjunto_de_datos_iter_13CSV20.csv,..\..\public-svn\matsim\scenarios\countries\mx\mexico-city\mexico-city-v1.0\input\data-scenario-generation/iter_15_cpv2020\conjunto_de_datos\conjunto_de_datos_iter_15CSV20.csv\
 		--shp $<\
 		--output $@
 
@@ -123,19 +123,19 @@ input/mexico-city-activities-1pct.plans.xml.gz: input/mexico-city-static-1pct.pl
 		--persons input/table-persons.csv.gz\
   		--activities input/table-activities.csv.gz\
   		--network input/v1.0/mexico-city-v1.0-network.xml.gz\
-  		--shp ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/distritos_eod2017_unam/DistritosEODHogaresZMVM2017_utm12n.shp
+  		--shp ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/data-scenario-generation/distritos_eod2017_unam/DistritosEODHogaresZMVM2017_utm12n.shp
 
-input/v1.0/mexico-city-v1.0-facilities.xml.gz: input/v1.0/mexico-city-v1.0-network.xml.gz ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/economy_locations_zmvm_2017/economy_locations_zmvm_2017_utm12n.shp
+input/v1.0/mexico-city-v1.0-facilities.xml.gz: input/v1.0/mexico-city-v1.0-network.xml.gz ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/data-scenario-generation/economy_locations_zmvm_2017/economy_locations_zmvm_2017_utm12n.shp
 	$(sc) prepare facilities\
 		--network $<\
 		--shp $(word 2,$^)\
 		--output $@
 
-input/commuter.csv: ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/data-input-eod2017-bundled/tviaje.csv
+input/commuter.csv: ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/data-scenario-generation/data-input-eod2017-bundled/tviaje.csv
 	$(sc) prepare create-commute-relations\
 		--od-survey $<\
-		--zmvm-shp ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/zmvm_2010/zmvm_2010_utm12n.shp\
-		--survey-shp ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/distritos_eod2017_unam/DistritosEODHogaresZMVM2017_utm12n.shp\
+		--zmvm-shp ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/data-scenario-generation/zmvm_2010/zmvm_2010_utm12n.shp\
+		--survey-shp ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/data-scenario-generation/distritos_eod2017_unam/DistritosEODHogaresZMVM2017_utm12n.shp\
 		--output $@
 
 #	--k 10 -> create 10 plans for each person to have more choices for CountOptimization
@@ -145,7 +145,7 @@ input/mexico-city-initial-1pct.plans.xml.gz: input/mexico-city-activities-1pct.p
 	 	--output $@\
 	 	--facilities $(word 2,$^)\
 	 	--network $(word 3,$^)\
-	 	--shp ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/zmvm_2010/zmvm_2010_utm12n.shp\
+	 	--shp ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/data-scenario-generation/zmvm_2010/zmvm_2010_utm12n.shp\
 	 	--commuter input/commuter.csv\
 	 	--k 10\
 
@@ -161,7 +161,7 @@ input/mexico-city-v1.0-vehicle-types.xml: ./input
 		--modes car,bike
 
 # create count stations based on csv count data
-input/mexico-city-v1.0.counts_car.2017.xml: ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/counts input/v1.0/mexico-city-v1.0-network-with-pt.xml.gz input/v1.0/mexico-city-v1.0-network-linkGeometries.csv
+input/mexico-city-v1.0.counts_car.2017.xml: ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/data-scenario-generation/counts input/v1.0/mexico-city-v1.0-network-with-pt.xml.gz input/v1.0/mexico-city-v1.0-network-linkGeometries.csv
 	$(sc) prepare counts\
 		--input $<\
 		--network $(word 2,$^)\
@@ -242,7 +242,7 @@ input/v1.0/mexico-city-v1.0-1pct.input.plans.xml.gz: input/v1.0/mexico-city-init
 check: input/v1.0/mexico-city-v1.0-1pct.input.plans.xml.gz
 	$(sc) analysis check-population $<\
  	 --input-crs $(CRS)\
-	 --shp ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/zmvm_2010/zmvm_2010_utm12n.shp\
+	 --shp ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/data-scenario-generation/zmvm_2010/zmvm_2010_utm12n.shp\
 	 --shp-crs $(CRS)
 
 # Aggregated target

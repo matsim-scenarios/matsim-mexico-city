@@ -34,6 +34,7 @@ import org.matsim.facilities.ActivityFacilitiesFactory;
 import org.matsim.facilities.ActivityFacility;
 import org.matsim.facilities.FacilitiesUtils;
 import org.matsim.prepare.MexicoCityUtils;
+import org.matsim.run.RunMexicoCityScenario;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -48,11 +49,11 @@ public class NetworkRoutingTest {
 	private ActivityFacilitiesFactory fac = FacilitiesUtils.createActivityFacilities().getFactory();
 	private Map<Map.Entry, List<? extends PlanElement>> coordPairs2Legs = new HashMap<>();
 
-//	TODO change paths to svn after upload
-	private final String carOnlyNetworkPath = "C:/Users/Simon/Desktop/wd/2024-01-09/first-network.xml.gz";
-	private final String ptNetworkPath = "C:/Users/Simon/Desktop/wd/2024-01-09/first-network-with-pt.xml.gz";
-	private final String transitSchedulePath = "C:/Users/Simon/Documents/vsp-projects/matsim-mexico-city/input/v1.0/mexico-city-v1.0-transitSchedule.xml.gz";
-	private final Path shpPath = Path.of("C:/Users/Simon/Documents/public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/distritos_eod2017_unam/DistritosEODHogaresZMVM2017_utm12n.shp");
+	private final String URL = "https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/";
+	private final String carOnlyNetworkPath = URL + "mexico-city-v" + RunMexicoCityScenario.VERSION + "-network.xml.gz";
+	private final String ptNetworkPath = URL + "mexico-city-v" + RunMexicoCityScenario.VERSION + "-network-with-pt.xml.gz";
+	private final String transitSchedulePath = URL + "mexico-city-v" + RunMexicoCityScenario.VERSION + "-transitSchedule.xml.gz";
+	private final Path shpPath = Path.of("../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/data-scenario-generation/distritos_eod2017_unam/DistritosEODHogaresZMVM2017_utm12n.shp");
 
 
 	@Test
