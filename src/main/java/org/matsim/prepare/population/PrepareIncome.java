@@ -5,6 +5,8 @@ import org.apache.commons.lang.math.DoubleRange;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.operation.buffer.BufferOp;
+import org.locationtech.jts.operation.buffer.BufferParameters;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Population;
@@ -19,10 +21,7 @@ import org.opengis.feature.simple.SimpleFeature;
 import picocli.CommandLine;
 
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.SplittableRandom;
+import java.util.*;
 
 @CommandLine.Command(
 	name = "income",
@@ -42,7 +41,7 @@ public class PrepareIncome implements MATSimAppCommand {
 
 	private static Map<String, DoubleRange> incomeGroups = new HashMap<>();
 
-	private static SplittableRandom rnd;
+	private static SplittableRandom rnd = new SplittableRandom();
 
 	public static void main(String[] args) {
 		new PrepareIncome().execute(args);
@@ -82,20 +81,39 @@ public class PrepareIncome implements MATSimAppCommand {
 		prepareIncomeGroupsMap();
 
 //		shp file contains the avg familiar income group based on analysis of ITDP México
-		List<SimpleFeature> features = shp.readFeatures();
+		Map<Geometry, String> geometries = new HashMap<>();
+
+		for (SimpleFeature feature : shp.readFeatures()) {
+			Geometry geom;
+			if (!(((Geometry) feature.getDefaultGeometry()).isValid())) {
+				geom = BufferOp.bufferOp((Geometry) feature.getDefaultGeometry(), 0.0, BufferParameters.CAP_ROUND);
+			} else {
+				geom = (Geometry) feature.getDefaultGeometry();
+			}
+			geometries.put(geom, feature.getAttribute("amai").toString());
+		}
 
 		int count = 0;
+		int countNoHHSize = 0;
 		for (Person p: population.getPersons().values()) {
 
 			Coord homeCoord = MexicoCityUtils.getHomeCoord(p);
+
+			if (p.getAttributes().getAttribute(MexicoCityUtils.HOUSEHOLD_SIZE) == null) {
+//				some agents do not have a HH size assigned, will assign mean HH size from ENIGH 2018: 3.6 rounded to 4
+//				source ENIGH2018: https://www.inegi.org.mx/contenidos/programas/enigh/nc/2018/doc/enigh2018_ns_presentacion_resultados.pdf p9
+				p.getAttributes().putAttribute(MexicoCityUtils.HOUSEHOLD_SIZE, 4);
+				countNoHHSize++;
+			}
+
 			int hhSize = (int) p.getAttributes().getAttribute(MexicoCityUtils.HOUSEHOLD_SIZE);
 
 			Double income2017 = null;
 
-			for (SimpleFeature feature : features) {
-				if (MGC.coord2Point(homeCoord).within((Geometry) feature.getDefaultGeometry())) {
+			for (Map.Entry<Geometry, String> e : geometries.entrySet()) {
+				if (MGC.coord2Point(homeCoord).within(e.getKey())) {
 //					the income groups are called amai because of the institution who calculated them (amai.org)
-					String group = feature.getAttribute("amai").toString();
+					String group = e.getValue();
 
 					if (group.equals("#N/A")) {
 //						if na -> random income
@@ -121,6 +139,7 @@ public class PrepareIncome implements MATSimAppCommand {
 			PersonUtils.setIncome(p, income2017 / hhSize);
 		}
 
+		log.info("For {} persons, no household size was assigned. The average household size of 4 persons (ENIGH2018) was assigned to them.", countNoHHSize);
 		log.info("For {} persons, a random income was added. This either happened due to no match with the shp file " +
 			"OR because the assigned income group of the shp file was n/a.", count);
 	}
