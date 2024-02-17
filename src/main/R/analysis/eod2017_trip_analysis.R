@@ -33,8 +33,8 @@ trips_taxibus <- trips %>%
 trips_walk <- trips %>% 
   filter(p5_14_14 == 1)
 
-datasets <- list(trips_pt, trips_car, trips_taxibus, trips_bike, trips_walk)
-names <- c("pt", "car", "taxibus", "bike", "walk")
+datasets <- list(trips_pt, trips_car, trips_taxibus, trips_bike, trips_walk, trips)
+names <- c("pt", "car", "taxibus", "bike", "walk", "total")
 i <- 1
 
 avgValues <- setNames(data.frame(matrix(ncol = 3, nrow = 0)), c("mode", "meanTripsPerDay", "medianTripsPerDay"))
