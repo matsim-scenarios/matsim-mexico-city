@@ -1,16 +1,23 @@
 #!/bin/bash --login
-#$ -l h_rt=790000
-#$ -j y
-#$ -m a
-#$ -cwd
-#$ -pe mp 8
-#$ -l mem_free=6G
-#$ -N calib-scenario
+#SBATCH --time=200:00:00
+#SBATCH --output=./logfiles/logfile_%x-%j.log
+#SBATCH --partition=smp
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=46G
+#SBATCH --job-name=cal-modeChoice-cdmx
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=meinhardt@vsp.tu-berlin.de
 
 date
 hostname
 
-command="python -u calibrate.py"
+if [ ! -d "logfiles" ]; then 
+	mkdir logfiles
+fi
+
+command="python3.9 -u calibrate.py"
 
 echo ""
 echo "command is $command"

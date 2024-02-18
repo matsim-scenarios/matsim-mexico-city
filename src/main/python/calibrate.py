@@ -1,86 +1,56 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os
+from matsim.calibration import create_calibration, ASCCalibrator, utils, analysis
 
-import pandas as pd
 import geopandas as gpd
 
-try:
-    from matsim import calibration
-except:
-    import calibration
+# %%
 
-#%%
-
-if os.path.exists("mid.csv"):
-    srv = pd.read_csv("mid.csv")
-    sim = pd.read_csv("sim.csv")
-
-    _, adj = calibration.calc_adjusted_mode_share(sim, srv)
-
-    print(srv.groupby("mode").sum())
-
-    print("Adjusted")
-    print(adj.groupby("mode").sum())
-
-    adj.to_csv("mid_adj.csv", index=False)
-
-#%%
-
-modes = ["walk", "car", "ride", "pt", "bike"]
+modes = ["walk", "car", "taxibus", "pt", "bike"]
 fixed_mode = "walk"
 initial = {
-    "bike": -0.141210,
-    "pt": 0.0781477780346438,
-    "car": 0.871977390743304,
-    "ride": -2.22873502992
+    "bike": 0,
+    "pt": -0.5,
+    "car": -0.5,
+    "taxibus": -0.5
 }
 
-# # TODO: decide on modes to tune + put in target modal split here
+# Target calculated from EOD2017, see class calculate_modal_split.R
 target = {
-    "walk": 0.1,
-    "bike": 0.1,
-    "pt":  0.1,
-    "car": 0.1,
-    "ride": 0.1
+    "walk": 0.1868,
+    "car": 0.1829,
+    "taxibus": 0.2942,
+    "pt": 0.3259,
+    "bike": 0.0103    
 }
 
-# TODO: create and put in dilutionArea file, decide on coord sys
-# TODO: create and put in homes file
-region = gpd.read_file("../scenarios/dilutionArea.shp").set_crs("EPSG:25832")
-homes = pd.read_csv("template-v1.0-homes.csv", dtype={"person": "str"})
+city = gpd.read_file("/net/ils/matsim-mexico-city/input/v1.0/cityArea/cityArea_cdmx_utm12n.shp")
 
 
-def filter_persons(persons):
-    persons = pd.merge(persons, homes, how="inner", left_on="person", right_on="person")
+def f(persons):
     persons = gpd.GeoDataFrame(persons, geometry=gpd.points_from_xy(persons.home_x, persons.home_y))
 
-    df = gpd.sjoin(persons.set_crs("EPSG:25832"), city, how="inner", op="intersects")
+    df = gpd.sjoin(persons.set_crs("EPSG:4485"), city, how="inner", op="intersects")
 
     print("Filtered %s persons" % len(df))
 
     return df
 
+
 def filter_modes(df):
-    df = df[df.main_mode != "freight"]
-    df.loc[df.main_mode.str.startswith("pt_"), "main_mode"] = "pt"
-
-    return df
+    return df[df.main_mode.isin(modes)]
 
 
-# TODO: Adjust paths and config
+study, obj = create_calibration("calib", ASCCalibrator(modes, initial, target, lr=utils.linear_scheduler(start=0.3, interval=15)),
+                                                "matsim-mexico-city-1.x-SNAPSHOT-047f3f0-dirty.jar",
+                                                 "/net/ils/matsim-mexico-city/input/v1.0/mexico-city-v1.0-1pct.input.config.xml",
+                                                 args="--1pct --income-area /net/ils/matsim-mexico-city/input/v1.0/nivel_amai/nivel_amai.shp --config:TimeAllocationMutator.mutationRange=900",
+                                                 jvm_args="-Xmx40G -Xms40G -XX:+AlwaysPreTouch -XX:+UseParallelGC",
+                                                 transform_persons=f, transform_trips=filter_modes,
+                                                 chain_runs=utils.default_chain_scheduler,
+                                                 debug=True)
 
-study, obj = calibration.create_mode_share_study("calib", "matsim-template-1.0.jar",
-                                        "../scenarios/metropole-ruhr-v1.0/input/metropole-ruhr-v1.4-3pct.config.xml",
-                                        modes, target, 
-                                        initial_asc=initial,
-                                        args="--10pct",
-                                        jvm_args="-Xmx75G -Xmx75G -XX:+AlwaysPreTouch -XX:+UseParallelGC",
-                                        lr=calibration.linear_lr_scheduler(start=0.5),
-                                        person_filter=filter_persons, map_trips=filter_modes, chain_runs=True)
-
-
-#%%
+# %%
 
 study.optimize(obj, 10)
