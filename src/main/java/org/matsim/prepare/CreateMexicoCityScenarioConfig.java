@@ -118,7 +118,7 @@ public class CreateMexicoCityScenarioConfig implements MATSimAppCommand {
 		config.subtourModeChoice().setBehavior(SubtourModeChoice.Behavior.betweenAllAndFewerConstraints);
 		config.subtourModeChoice().setConsiderCarAvailability(true);
 		config.subtourModeChoice().setCoordDistance(100.);
-		config.subtourModeChoice().setModes(new String[]{String.valueOf(relevantModes)});
+		config.subtourModeChoice().setModes(relevantModes.toArray(new String[0]));
 		config.subtourModeChoice().setProbaForRandomSingleTripMode(0.5);
 
 		config.transit().setTransitScheduleFile(url + transitSchedulePath);
