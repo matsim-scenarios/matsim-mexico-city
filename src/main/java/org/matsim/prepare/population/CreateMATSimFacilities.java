@@ -148,7 +148,11 @@ public class CreateMATSimFacilities implements MATSimAppCommand {
 
 		Holder holder = data.computeIfAbsent(link, k -> new Holder(ConcurrentHashMap.newKeySet(), ConcurrentHashMap.newKeySet(), Collections.synchronizedList(new ArrayList<>())));
 
-		holder.ids.add(id[id.length - 1]);
+//		cap id length, because with too many datapoints the facility id exceeds the allowed char count for csv files (is relevant for MATSim analysis like TripAnalysis)
+		if (holder.ids.size() <= 5) {
+			holder.ids.add(id[id.length - 1]);
+		}
+
 		holder.activities.addAll(activities(ft));
 
 		// Search for the original drawn coordinate of the associated link
