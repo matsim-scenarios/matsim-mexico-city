@@ -51,7 +51,7 @@ import java.util.Set;
 
 @CommandLine.Command(header = ":: Open Mexico-City Scenario ::", version = RunMexicoCityScenario.VERSION, mixinStandardHelpOptions = true)
 @MATSimApplication.Prepare({
-	AdjustActivityToLinkDistances.class, ChangeModeNames.class, CheckCarAvailability.class, CleanNetwork.class, CreateCommuterRelations.class, CreateCountsFromDatosVialesPortal.class,
+	AdjustActivityToLinkDistances.class, ChangeFacilities.class, ChangeModeNames.class, CheckCarAvailability.class, CleanNetwork.class, CreateCommuterRelations.class, CreateCountsFromDatosVialesPortal.class,
 	CreateLandUseShp.class, CreateMATSimFacilities.class, CreateMetropolitanAreaPopulation.class, CreateMexicoCityPopulation.class, CreateMexicoCityScenarioConfig.class,
 	CreateNetworkFromSumo.class, CreateTransitScheduleFromGtfs.class, CreateVehicleTypes.class, DownSamplePopulation.class, ExtractHomeCoordinates.class,
 	FixSubtourModes.class, GenerateShortDistanceTrips.class, InitLocationChoice.class, MergePopulations.class, PrepareIncome.class, ResolveGridCoordinates.class,
