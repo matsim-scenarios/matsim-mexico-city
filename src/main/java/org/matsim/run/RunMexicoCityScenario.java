@@ -30,10 +30,7 @@ import org.matsim.core.controler.AbstractModule;
 import org.matsim.core.controler.Controler;
 import org.matsim.core.router.AnalysisMainModeIdentifier;
 import org.matsim.core.scoring.functions.ScoringParametersForPerson;
-import org.matsim.prepare.CreateCountsFromDatosVialesPortal;
-import org.matsim.prepare.CreateMexicoCityScenarioConfig;
-import org.matsim.prepare.CreateVehicleTypes;
-import org.matsim.prepare.MexicoCityUtils;
+import org.matsim.prepare.*;
 import org.matsim.prepare.opt.RunCountOptimization;
 import org.matsim.prepare.opt.SelectPlansFromIndex;
 import org.matsim.prepare.population.*;
@@ -54,7 +51,7 @@ import java.util.Set;
 	AdjustActivityToLinkDistances.class, ChangeFacilities.class, ChangeModeNames.class, CheckCarAvailability.class, CleanNetwork.class, CreateCommuterRelations.class, CreateCountsFromDatosVialesPortal.class,
 	CreateLandUseShp.class, CreateMATSimFacilities.class, CreateMetropolitanAreaPopulation.class, CreateMexicoCityPopulation.class, CreateMexicoCityScenarioConfig.class,
 	CreateNetworkFromSumo.class, CreateTransitScheduleFromGtfs.class, CreateVehicleTypes.class, DownSamplePopulation.class, ExtractHomeCoordinates.class,
-	FixSubtourModes.class, GenerateShortDistanceTrips.class, InitLocationChoice.class, MergePopulations.class, PrepareIncome.class, ResolveGridCoordinates.class,
+	FixSubtourModes.class, GenerateShortDistanceTrips.class, InitLocationChoice.class, MergePopulations.class, PrepareBikePopulation.class, PrepareIncome.class, PrepareNetwork.class, ResolveGridCoordinates.class,
 	RunActivitySampling.class, RunCountOptimization.class, SelectPlansFromIndex.class, SplitActivityTypesDuration.class, XYToLinks.class
 })
 @MATSimApplication.Analysis({
@@ -183,8 +180,7 @@ public class RunMexicoCityScenario extends MATSimApplication {
 		}
 
 		if (bike) {
-//			TODO: bike net routes cannot be found?! -> clean plans? Check some expamples. Are those agents outside of CDMX where there are (supposedly) no bike roads
-
+			PrepareNetwork.prepareNetworkBikeOnNetwork(scenario.getNetwork(), new ShpOptions(Path.of("input/v1.0/area/area.shp"), null, null));
 
 //			add bike vehicle type if missing
 			Id<VehicleType> bikeTypeId = Id.create(TransportMode.bike, VehicleType.class);
@@ -201,9 +197,6 @@ public class RunMexicoCityScenario extends MATSimApplication {
 				scenario.getVehicles().addVehicleType(bikeType);
 			}
 		}
-
-
-
 	}
 
 	@Override
