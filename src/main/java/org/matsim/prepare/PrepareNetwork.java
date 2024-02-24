@@ -9,6 +9,7 @@ import org.matsim.api.core.v01.network.Network;
 import org.matsim.application.MATSimAppCommand;
 import org.matsim.application.options.ShpOptions;
 import org.matsim.core.network.NetworkUtils;
+import org.matsim.core.network.algorithms.MultimodalNetworkCleaner;
 import org.matsim.core.utils.geometry.geotools.MGC;
 import picocli.CommandLine;
 
@@ -82,5 +83,7 @@ public class PrepareNetwork implements MATSimAppCommand {
 		}
 
 		log.info("For {} links bike has been added as an allowed mode.", linkCount);
+
+		new MultimodalNetworkCleaner(network).run(Set.of(TransportMode.bike));
 	}
 }
