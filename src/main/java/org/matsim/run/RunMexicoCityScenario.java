@@ -42,8 +42,10 @@ import picocli.CommandLine;
 import playground.vsp.scoring.IncomeDependentUtilityOfMoneyPersonScoringParameters;
 
 import javax.annotation.Nullable;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.HashSet;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 @CommandLine.Command(header = ":: Open Mexico-City Scenario ::", version = RunMexicoCityScenario.VERSION, mixinStandardHelpOptions = true)
@@ -180,7 +182,18 @@ public class RunMexicoCityScenario extends MATSimApplication {
 		}
 
 		if (bike) {
-			PrepareNetwork.prepareNetworkBikeOnNetwork(scenario.getNetwork(), new ShpOptions(Path.of("input/v1.0/area/area.shp"), null, null));
+
+			String bikeAreaPath = "";
+			try {
+				bikeAreaPath = Path.of(scenario.getConfig().getContext().toURI()).getParent().toString();
+
+				if (!Path.of(scenario.getConfig().getContext().toURI()).getParent().toString().endsWith("/")) {
+					bikeAreaPath += "/";
+				}
+			} catch (URISyntaxException e) {
+				throw new NoSuchElementException(e);
+			}
+			PrepareNetwork.prepareNetworkBikeOnNetwork(scenario.getNetwork(), new ShpOptions(Path.of(bikeAreaPath + "area/area.shp"), null, null));
 
 //			add bike vehicle type if missing
 			Id<VehicleType> bikeTypeId = Id.create(TransportMode.bike, VehicleType.class);
