@@ -24,3 +24,8 @@ modalSplitAggrNorm <- modalSplitAggr / sum
 sumNorm <- sum(colSums(modalSplitAggrNorm))
 
 modalSplitAggrNorm
+
+tidy <- modalSplitAggrNorm %>%
+  pivot_longer(cols=c(walk,car,taxibus,pt,bike), names_to="main_mode",values_to="share")
+
+write.table(tidy, "./src/main/resources/mode_share_ref.csv",quote=FALSE, row.names=FALSE, sep=",")
