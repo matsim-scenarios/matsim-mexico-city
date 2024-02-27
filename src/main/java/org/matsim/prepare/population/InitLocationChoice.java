@@ -116,7 +116,7 @@ public class InitLocationChoice implements MATSimAppCommand, PersonAlgorithm {
 	@Override
 	public Integer call() throws Exception {
 
-		if (!MexicoCityUtils.isDefined(shp.getShapeFile())) {
+		if (shp.getShapeFile() == null) {
 			log.error("Shape file with commuter zones is required.");
 			return 2;
 		}

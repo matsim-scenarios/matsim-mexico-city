@@ -66,7 +66,7 @@ public class CreateMATSimFacilities implements MATSimAppCommand {
 	@Override
 	public Integer call() throws Exception {
 
-		if (!MexicoCityUtils.isDefined(shp.getShapeFile())) {
+		if (shp.getShapeFile() == null) {
 			log.error("Shp file with facility locations is required.");
 			return 2;
 		}

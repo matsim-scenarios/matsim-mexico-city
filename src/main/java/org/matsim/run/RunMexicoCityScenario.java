@@ -143,7 +143,7 @@ public class RunMexicoCityScenario extends MATSimApplication {
 		sw.defaultParams().shp = "./area/area.shp";
 
 		if (sample.isSet()) {
-			sw.defaultParams().sampleSize = sample.getSample();
+			sw.sampleSize = sample.getSample();
 		}
 
 		ConfigUtils.addOrGetModule(config, SwissRailRaptorConfigGroup.class);

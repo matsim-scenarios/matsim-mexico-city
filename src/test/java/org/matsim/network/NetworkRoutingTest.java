@@ -2,9 +2,8 @@ package org.matsim.network;
 
 import ch.sbb.matsim.config.SwissRailRaptorConfigGroup;
 import ch.sbb.matsim.routing.pt.raptor.*;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Geometry;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
@@ -39,7 +38,9 @@ import org.matsim.run.RunMexicoCityScenario;
 import java.nio.file.Path;
 import java.util.*;
 
-@Ignore
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
+@Disabled
 public class NetworkRoutingTest {
 
 	private final LeastCostPathCalculatorFactory leastCostPathCalculatorFactory = new SpeedyALTFactory();
@@ -99,7 +100,7 @@ public class NetworkRoutingTest {
 
 		routeOnNetwork(scenario);
 
-		coordPairs2Legs.entrySet().stream().forEach(e -> Assert.assertFalse(e.getValue().isEmpty()));
+		coordPairs2Legs.entrySet().stream().forEach(e -> assertFalse(e.getValue().isEmpty()));
 		coordPairs2Legs.clear();
 	}
 
@@ -130,7 +131,7 @@ public class NetworkRoutingTest {
 
 		routeOnNetwork(scenario);
 
-		coordPairs2Legs.entrySet().stream().forEach(e -> Assert.assertFalse(e.getValue().isEmpty()));
+		coordPairs2Legs.entrySet().stream().forEach(e -> assertFalse(e.getValue().isEmpty()));
 		coordPairs2Legs.clear();
 	}
 

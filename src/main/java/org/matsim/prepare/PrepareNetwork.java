@@ -43,7 +43,7 @@ public class PrepareNetwork implements MATSimAppCommand {
 
 		Network network = NetworkUtils.readNetwork(networkFile);
 
-		if (!MexicoCityUtils.isDefined(shp.getShapeFile())) {
+		if (shp.getShapeFile() == null) {
 			shp = new ShpOptions(Path.of("input/v1.0/area/area.shp"), null, null);
 		}
 
