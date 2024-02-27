@@ -144,6 +144,9 @@ public class RunMexicoCityScenario extends MATSimApplication {
 
 		if (sample.isSet()) {
 			sw.defaultParams().sampleSize = sample.getSample();
+		} else {
+			log.error("Sample size is not set. Please run the scenario including a set sample size!");
+			throw new NoSuchElementException();
 		}
 
 		ConfigUtils.addOrGetModule(config, SwissRailRaptorConfigGroup.class);
