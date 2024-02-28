@@ -66,7 +66,10 @@ public class RunMexicoCityScenario extends MATSimApplication {
 	Logger log = LogManager.getLogger(RunMexicoCityScenario.class);
 
 	@CommandLine.Option(names = "--bikes-on-network", defaultValue = "false", description = "Define how bicycles are handled: True: as network mode, false: as teleported mode.")
-	private boolean bike;
+	private boolean bikeOnNetwork;
+
+	@CommandLine.Option(names = "--repurpose-lanes", defaultValue = "false", description = "Enables the simulation of a lane repurposing scenario (car -> bike): See class PrepareNetwork for details.")
+	private boolean repurposeLanes;
 
 	@CommandLine.Option(names = "--income-area", description = "Path to SHP file specifying income ranges. If provided, income dependent scoring will be used.")
 	private Path incomeAreaPath;
@@ -124,7 +127,7 @@ public class RunMexicoCityScenario extends MATSimApplication {
 			}
 		}
 
-		if (bike) {
+		if (bikeOnNetwork) {
 //			remove bike as teleported mode (standard)
 			config.routing().removeTeleportedModeParams(TransportMode.bike);
 			Set<String> networkModes = new HashSet<>();
@@ -196,7 +199,7 @@ public class RunMexicoCityScenario extends MATSimApplication {
 			}
 		}
 
-		if (bike) {
+		if (bikeOnNetwork) {
 
 			String bikeAreaPath = "";
 			try {
@@ -208,7 +211,13 @@ public class RunMexicoCityScenario extends MATSimApplication {
 			} catch (URISyntaxException e) {
 				throw new NoSuchElementException(e);
 			}
-			PrepareNetwork.prepareNetworkBikeOnNetwork(scenario.getNetwork(), new ShpOptions(Path.of(bikeAreaPath + "area/area.shp"), null, null));
+			PrepareNetwork.prepareBikeOnNetwork(scenario.getNetwork(), new ShpOptions(Path.of(bikeAreaPath + "area/area.shp"), null, null));
+
+//			remove 1 car lane for each link with more than 1 lane. Repurpose the lane to bike. Exception: motorways
+			if (repurposeLanes) {
+				log.info("Scenario for repurposing car lanes to bike lanes is enabled. See class PrepareNetwork for more information.");
+				PrepareNetwork.prepareRepurposeCarLanesNetwork(scenario.getNetwork());
+			}
 
 //			add bike vehicle type if missing
 			Id<VehicleType> bikeTypeId = Id.create(TransportMode.bike, VehicleType.class);
