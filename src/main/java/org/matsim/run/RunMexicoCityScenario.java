@@ -4,7 +4,6 @@ import ch.sbb.matsim.config.SwissRailRaptorConfigGroup;
 import ch.sbb.matsim.routing.pt.raptor.SwissRailRaptorModule;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.locationtech.jts.geom.Geometry;
 import org.matsim.analysis.MexicoCityMainModeIdentifier;
 import org.matsim.analysis.ModeChoiceCoverageControlerListener;
 import org.matsim.analysis.personMoney.PersonMoneyEventsAnalysisModule;
@@ -32,8 +31,6 @@ import org.matsim.core.controler.AbstractModule;
 import org.matsim.core.controler.Controler;
 import org.matsim.core.router.AnalysisMainModeIdentifier;
 import org.matsim.core.scoring.functions.ScoringParametersForPerson;
-import org.matsim.core.utils.geometry.geotools.MGC;
-import org.matsim.core.utils.misc.Time;
 import org.matsim.prepare.*;
 import org.matsim.prepare.opt.RunCountOptimization;
 import org.matsim.prepare.opt.SelectPlansFromIndex;
@@ -77,8 +74,8 @@ public class RunMexicoCityScenario extends MATSimApplication {
 	@CommandLine.Option(names = "--random-seed", defaultValue = "4711", description = "setting random seed for the simulation. Can be used to compare several runs with the same config.")
 	private long randomSeed;
 
-	@CommandLine.Option(names = "--road-pricing-area", description = "Path to SHP file specifying an area, where tolls are charged. If provided, road pricing for mode car will be used.")
-	private Path roadPricingAreaPath;
+	@CommandLine.ArgGroup(heading = "%nRoadPricing options%n", exclusive = false, multiplicity = "0..1")
+	private final RoadPricingOptions pricingOpt = new RoadPricingOptions();
 
 	@CommandLine.Mixin
 	private final SampleOptions sample = new SampleOptions(1);
@@ -158,7 +155,7 @@ public class RunMexicoCityScenario extends MATSimApplication {
 
 		ConfigUtils.addOrGetModule(config, SwissRailRaptorConfigGroup.class);
 
-		if (MexicoCityUtils.isDefined(roadPricingAreaPath)) {
+		if (MexicoCityUtils.isDefined(RoadPricingOptions.roadPricingAreaPath)) {
 			ConfigUtils.addOrGetModule(config, RoadPricingConfigGroup.class).setTollLinksFile(null);
 		}
 
@@ -168,33 +165,8 @@ public class RunMexicoCityScenario extends MATSimApplication {
 	@Override
 	protected void prepareScenario(Scenario scenario) {
 
-		if (MexicoCityUtils.isDefined(roadPricingAreaPath)) {
-//			TODO: implement income based road pricing scheme?
-//			1) check in contrib if a "relative toll" exists, if not -> write it here in scenario
-			RoadPricingSchemeImpl scheme = RoadPricingUtils.addOrGetMutableRoadPricingScheme(scenario);
-
-			RoadPricingUtils.setName(scheme, "ITDP_congestion_pricing");
-			RoadPricingUtils.setType(scheme, RoadPricingScheme.TOLL_TYPE_AREA);
-			RoadPricingUtils.setDescription(scheme, "Area based road pricing scheme based on work of ITDP Mexico");
-
-
-//			52MXN = ~ 3 dollar
-			RoadPricingUtils.createAndAddGeneralCost(scheme,
-				Time.parseTime("06:00:00"),
-				Time.parseTime("22:00:00"),
-				52.0);
-
-			Geometry geometry = new ShpOptions(roadPricingAreaPath, null, null).getGeometry();
-
-			for (Link link : scenario.getNetwork().getLinks().values()) {
-
-				boolean isInsideArea = MGC.coord2Point(link.getFromNode().getCoord()).within(geometry)
-					|| MGC.coord2Point(link.getToNode().getCoord()).within(geometry);
-
-				if (isInsideArea) {
-					RoadPricingUtils.addLink(scheme, link.getId());
-				}
-			}
+		if (MexicoCityUtils.isDefined(RoadPricingOptions.roadPricingAreaPath)) {
+			pricingOpt.configureAreaTollScheme(scenario);
 		}
 
 		if (MexicoCityUtils.isDefined(incomeAreaPath)) {
@@ -271,8 +243,20 @@ public class RunMexicoCityScenario extends MATSimApplication {
 					bind(ScoringParametersForPerson.class).to(IncomeDependentUtilityOfMoneyPersonScoringParameters.class).asEagerSingleton();
 				}
 
-				if (MexicoCityUtils.isDefined(roadPricingAreaPath)) {
+				if (MexicoCityUtils.isDefined(RoadPricingOptions.roadPricingAreaPath)) {
 					install(new RoadPricingModule());
+
+//					use own RoadPricingControlerListener, which throws person money events by multiplying the toll (factor) by the agent's income
+					if (RoadPricingOptions.roadPricingType.equals(RoadPricingOptions.RoadPricingType.RELATIVE_TO_INCOME)) {
+						if (!MexicoCityUtils.isDefined(incomeAreaPath)) {
+							log.error("Path to shp file for income assignment is not given. Simulation will fail without income attributes. Please define the path to the shp as run param.");
+							throw new NoSuchElementException();
+						}
+						addControlerListenerBinding().to(MexicoCityRoadPricingControlerListener.class);
+						log.warn("Running road pricing scenario with a toll value of {}. Make sure, that this is a relative value.", RoadPricingOptions.toll);
+					} else {
+						log.warn("Running road pricing scenario with a toll value of {}. Make sure, that this is an absolute value.", RoadPricingOptions.toll);
+					}
 				}
 
 				addControlerListenerBinding().to(ModeChoiceCoverageControlerListener.class);
