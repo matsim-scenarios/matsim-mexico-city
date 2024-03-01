@@ -91,11 +91,14 @@ input/first-network.xml.gz: input/sumo.net.xml
 
 
 input/first-network-with-pt.xml.gz: input/first-network.xml.gz
-
 	$(sc) prepare transit-from-gtfs --network $<\
 	 --output=input/\
-	 --name $N-$V --date "2021-03-09" --target-crs $(CRS) \
-	 ../../public-svn/matsim/scenarios/countries/mx/$N/$N-$V/input/data-scenario-generation/gtfs_cdmx_2020-09-15.zip
+	 --name $N-$V --date "2023-03-07" --target-crs $(CRS) \
+	 ../../public-svn/matsim/scenarios/countries/mx/$N/$N-$V/input/data-scenario-generation/gtfs_semovi_2024-02-22.zip
+
+input/mexico-city-v1.0-transitVehicles_corrected.xml.gz: input/mexico-city-v1.0-transitVehicles.xml.gz
+	 $(sc) prepare correct-pt-vehicle-types\
+	  --vehicles $<
 
 
 ############################################ 2) POPULATION CREATION ###########################################################

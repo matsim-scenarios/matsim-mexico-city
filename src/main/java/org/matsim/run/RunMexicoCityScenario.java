@@ -4,6 +4,7 @@ import ch.sbb.matsim.config.SwissRailRaptorConfigGroup;
 import ch.sbb.matsim.routing.pt.raptor.SwissRailRaptorModule;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.matsim.analysis.CheckPtNetwork;
 import org.matsim.analysis.MexicoCityMainModeIdentifier;
 import org.matsim.analysis.ModeChoiceCoverageControlerListener;
 import org.matsim.analysis.personMoney.PersonMoneyEventsAnalysisModule;
@@ -51,14 +52,15 @@ import java.util.Set;
 
 @CommandLine.Command(header = ":: Open Mexico-City Scenario ::", version = RunMexicoCityScenario.VERSION, mixinStandardHelpOptions = true)
 @MATSimApplication.Prepare({
-	AdjustActivityToLinkDistances.class, ChangeFacilities.class, ChangeModeNames.class, CheckCarAvailability.class, CleanNetwork.class, CreateCommuterRelations.class, CreateCountsFromDatosVialesPortal.class,
-	CreateLandUseShp.class, CreateMATSimFacilities.class, CreateMetropolitanAreaPopulation.class, CreateMexicoCityPopulation.class, CreateMexicoCityScenarioConfig.class,
-	CreateNetworkFromSumo.class, CreateTransitScheduleFromGtfs.class, CreateVehicleTypes.class, DownSamplePopulation.class, ExtractHomeCoordinates.class,
-	FixSubtourModes.class, GenerateShortDistanceTrips.class, InitLocationChoice.class, MergePopulations.class, PrepareBikePopulation.class, PrepareIncome.class, PrepareNetwork.class, ResolveGridCoordinates.class,
-	RunActivitySampling.class, RunCountOptimization.class, SelectPlansFromIndex.class, SplitActivityTypesDuration.class, XYToLinks.class
+	AdjustActivityToLinkDistances.class, ChangeFacilities.class, ChangeModeNames.class, CheckCarAvailability.class, CleanNetwork.class, CorrectPtVehicleTypes.class,
+	CreateCommuterRelations.class, CreateCountsFromDatosVialesPortal.class, CreateLandUseShp.class, CreateMATSimFacilities.class, CreateMetropolitanAreaPopulation.class,
+	CreateMexicoCityPopulation.class, CreateMexicoCityScenarioConfig.class, CreateNetworkFromSumo.class, CreateTransitScheduleFromGtfs.class, CreateVehicleTypes.class,
+	DownSamplePopulation.class, ExtractHomeCoordinates.class, FixSubtourModes.class, GenerateShortDistanceTrips.class, InitLocationChoice.class, MergePopulations.class,
+	PrepareBikePopulation.class, PrepareIncome.class, PrepareNetwork.class, ResolveGridCoordinates.class, RunActivitySampling.class, RunCountOptimization.class,
+	SelectPlansFromIndex.class, SplitActivityTypesDuration.class, XYToLinks.class
 })
 @MATSimApplication.Analysis({
-		LinkStats.class, CheckPopulation.class
+		LinkStats.class, CheckPopulation.class, CheckPtNetwork.class
 })
 
 public class RunMexicoCityScenario extends MATSimApplication {
