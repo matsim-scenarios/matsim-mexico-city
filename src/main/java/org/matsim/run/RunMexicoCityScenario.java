@@ -30,6 +30,7 @@ import org.matsim.core.config.groups.RoutingConfigGroup;
 import org.matsim.core.config.groups.VspExperimentalConfigGroup;
 import org.matsim.core.controler.AbstractModule;
 import org.matsim.core.controler.Controler;
+import org.matsim.core.replanning.annealing.ReplanningAnnealerConfigGroup;
 import org.matsim.core.router.AnalysisMainModeIdentifier;
 import org.matsim.core.scoring.functions.ScoringParametersForPerson;
 import org.matsim.prepare.*;
@@ -67,6 +68,8 @@ public class RunMexicoCityScenario extends MATSimApplication {
 
 	Logger log = LogManager.getLogger(RunMexicoCityScenario.class);
 
+	@CommandLine.Option(names = "--annealing", defaultValue = "false", description = "Defines if replanning annealing is used or not.")
+	private boolean annealing;
 	@CommandLine.Option(names = "--bikes-on-network", defaultValue = "false", description = "Define how bicycles are handled: True: as network mode, false: as teleported mode.")
 	private boolean bikeOnNetwork;
 
@@ -127,6 +130,21 @@ public class RunMexicoCityScenario extends MATSimApplication {
 					settings.setWeight(1.0);
 				}
 			}
+		}
+
+		if (annealing) {
+			ReplanningAnnealerConfigGroup annealingCfg = ConfigUtils.addOrGetModule(config, ReplanningAnnealerConfigGroup.class);
+			annealingCfg.setActivateAnnealingModule(true);
+
+			ReplanningAnnealerConfigGroup.AnnealingVariable variable = new ReplanningAnnealerConfigGroup.AnnealingVariable();
+			variable.setAnnealType(ReplanningAnnealerConfigGroup.AnnealOption.sigmoid);
+			variable.setDefaultSubpopulation("person");
+			variable.setEndValue(0.01);
+			variable.setHalfLife(0.5);
+			variable.setShapeFactor(0.01);
+			variable.setStartValue(0.5);
+
+			annealingCfg.addParameterSet(variable);
 		}
 
 		if (bikeOnNetwork) {
