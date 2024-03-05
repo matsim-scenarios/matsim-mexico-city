@@ -146,7 +146,7 @@ public class RunMexicoCityScenario extends MATSimApplication {
 
 		SimWrapperConfigGroup sw = ConfigUtils.addOrGetModule(config, SimWrapperConfigGroup.class);
 
-		sw.defaultParams().mapCenter = "19.43,-99.13";
+		sw.defaultParams().mapCenter = "-99.13, 19.43";
 		sw.defaultParams().mapZoomLevel = 9.1;
 //		relative to config
 		sw.defaultParams().shp = "./area/area.shp";
