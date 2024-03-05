@@ -1,20 +1,20 @@
 cff-version: 1.2.0
-title: MATSim Scenario Template (Adjust title)
+title: MATSim Open Mexico-City Scenario
 message: >-
   If you use this software, please cite it using the
   metadata from this file.
 type: software
 authors:
+   - given-names: Simon
+     family-names: Meinhardt
+     email: meinhardt@vsp.tu-berlin.de
+     affiliation: Technische Universität Berlin
+     orcid: 'https://orcid.org/0000-0002-6354-4529'
   - given-names: Christian
     family-names: Rakow
     email: rakow@vsp.tu-berlin.de
     affiliation: Technische Universität Berlin
     orcid: 'https://orcid.org/0000-0002-6354-4529'
-  - given-names: Simon
-      family-names: Meinhardt
-      email: meinhardt@vsp.tu-berlin.de
-      affiliation: Technische Universität Berlin
-      orcid: 'https://orcid.org/0000-0002-6354-4529'
 
 url: "https://github.com/matsim-scenarios/matsim-mexico-city"
 TODO: adapt release date
