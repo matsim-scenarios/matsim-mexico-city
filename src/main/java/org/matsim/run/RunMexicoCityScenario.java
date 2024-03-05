@@ -4,6 +4,7 @@ import ch.sbb.matsim.config.SwissRailRaptorConfigGroup;
 import ch.sbb.matsim.routing.pt.raptor.SwissRailRaptorModule;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.matsim.analysis.CheckPtNetwork;
 import org.matsim.analysis.MexicoCityMainModeIdentifier;
 import org.matsim.analysis.ModeChoiceCoverageControlerListener;
 import org.matsim.analysis.personMoney.PersonMoneyEventsAnalysisModule;
@@ -21,6 +22,7 @@ import org.matsim.application.prepare.network.CleanNetwork;
 import org.matsim.application.prepare.network.CreateNetworkFromSumo;
 import org.matsim.application.prepare.population.*;
 import org.matsim.application.prepare.pt.CreateTransitScheduleFromGtfs;
+import org.matsim.contrib.roadpricing.*;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.config.groups.ReplanningConfigGroup;
@@ -50,14 +52,15 @@ import java.util.Set;
 
 @CommandLine.Command(header = ":: Open Mexico-City Scenario ::", version = RunMexicoCityScenario.VERSION, mixinStandardHelpOptions = true)
 @MATSimApplication.Prepare({
-	AdjustActivityToLinkDistances.class, ChangeFacilities.class, ChangeModeNames.class, CheckCarAvailability.class, CleanNetwork.class, CreateCommuterRelations.class, CreateCountsFromDatosVialesPortal.class,
-	CreateLandUseShp.class, CreateMATSimFacilities.class, CreateMetropolitanAreaPopulation.class, CreateMexicoCityPopulation.class, CreateMexicoCityScenarioConfig.class,
-	CreateNetworkFromSumo.class, CreateTransitScheduleFromGtfs.class, CreateVehicleTypes.class, DownSamplePopulation.class, ExtractHomeCoordinates.class,
-	FixSubtourModes.class, GenerateShortDistanceTrips.class, InitLocationChoice.class, MergePopulations.class, PrepareBikePopulation.class, PrepareIncome.class, PrepareNetwork.class, ResolveGridCoordinates.class,
-	RunActivitySampling.class, RunCountOptimization.class, SelectPlansFromIndex.class, SplitActivityTypesDuration.class, XYToLinks.class
+	AdjustActivityToLinkDistances.class, ChangeFacilities.class, ChangeModeNames.class, CheckActivityFacilities.class, CheckCarAvailability.class, CleanNetwork.class, CorrectPtVehicleTypes.class,
+	CreateCommuterRelations.class, CreateCountsFromDatosVialesPortal.class, CreateLandUseShp.class, CreateMATSimFacilities.class, CreateMetropolitanAreaPopulation.class,
+	CreateMexicoCityPopulation.class, CreateMexicoCityScenarioConfig.class, CreateNetworkFromSumo.class, CreateTransitScheduleFromGtfs.class, CreateVehicleTypes.class,
+	DownSamplePopulation.class, ExtractHomeCoordinates.class, FixSubtourModes.class, GenerateShortDistanceTrips.class, InitLocationChoice.class, MergePopulations.class,
+	PrepareBikePopulation.class, PrepareIncome.class, PrepareNetwork.class, ResolveGridCoordinates.class, RunActivitySampling.class, RunCountOptimization.class,
+	SelectPlansFromIndex.class, SplitActivityTypesDuration.class, XYToLinks.class
 })
 @MATSimApplication.Analysis({
-		LinkStats.class, CheckPopulation.class
+		LinkStats.class, CheckPopulation.class, CheckPtNetwork.class
 })
 
 public class RunMexicoCityScenario extends MATSimApplication {
@@ -65,13 +68,19 @@ public class RunMexicoCityScenario extends MATSimApplication {
 	Logger log = LogManager.getLogger(RunMexicoCityScenario.class);
 
 	@CommandLine.Option(names = "--bikes-on-network", defaultValue = "false", description = "Define how bicycles are handled: True: as network mode, false: as teleported mode.")
-	private boolean bike;
+	private boolean bikeOnNetwork;
+
+	@CommandLine.Option(names = "--repurpose-lanes", defaultValue = "false", description = "Enables the simulation of a lane repurposing scenario (car -> bike): See class PrepareNetwork for details.")
+	private boolean repurposeLanes;
 
 	@CommandLine.Option(names = "--income-area", description = "Path to SHP file specifying income ranges. If provided, income dependent scoring will be used.")
 	private Path incomeAreaPath;
 
 	@CommandLine.Option(names = "--random-seed", defaultValue = "4711", description = "setting random seed for the simulation. Can be used to compare several runs with the same config.")
 	private long randomSeed;
+
+	@CommandLine.ArgGroup(heading = "%nRoadPricing options%n", exclusive = false, multiplicity = "0..1")
+	private final RoadPricingOptions pricingOpt = new RoadPricingOptions();
 
 	@CommandLine.Mixin
 	private final SampleOptions sample = new SampleOptions(1);
@@ -120,7 +129,7 @@ public class RunMexicoCityScenario extends MATSimApplication {
 			}
 		}
 
-		if (bike) {
+		if (bikeOnNetwork) {
 //			remove bike as teleported mode (standard)
 			config.routing().removeTeleportedModeParams(TransportMode.bike);
 			Set<String> networkModes = new HashSet<>();
@@ -144,15 +153,26 @@ public class RunMexicoCityScenario extends MATSimApplication {
 
 		if (sample.isSet()) {
 			sw.sampleSize = sample.getSample();
+		} else {
+			log.error("Sample size is not set. Please run the scenario including a set sample size!");
+			throw new NoSuchElementException();
 		}
 
 		ConfigUtils.addOrGetModule(config, SwissRailRaptorConfigGroup.class);
+
+		if (MexicoCityUtils.isDefined(RoadPricingOptions.roadPricingAreaPath)) {
+			ConfigUtils.addOrGetModule(config, RoadPricingConfigGroup.class).setTollLinksFile(null);
+		}
 
 		return config;
 	}
 
 	@Override
 	protected void prepareScenario(Scenario scenario) {
+
+		if (MexicoCityUtils.isDefined(RoadPricingOptions.roadPricingAreaPath)) {
+			pricingOpt.configureAreaTollScheme(scenario);
+		}
 
 		if (MexicoCityUtils.isDefined(incomeAreaPath)) {
 			PrepareIncome.assignIncomeAttr(new ShpOptions(incomeAreaPath, null, null), scenario.getPopulation());
@@ -181,7 +201,7 @@ public class RunMexicoCityScenario extends MATSimApplication {
 			}
 		}
 
-		if (bike) {
+		if (bikeOnNetwork) {
 
 			String bikeAreaPath = "";
 			try {
@@ -193,7 +213,13 @@ public class RunMexicoCityScenario extends MATSimApplication {
 			} catch (URISyntaxException e) {
 				throw new NoSuchElementException(e);
 			}
-			PrepareNetwork.prepareNetworkBikeOnNetwork(scenario.getNetwork(), new ShpOptions(Path.of(bikeAreaPath + "area/area.shp"), null, null));
+			PrepareNetwork.prepareBikeOnNetwork(scenario.getNetwork(), new ShpOptions(Path.of(bikeAreaPath + "area/area.shp"), null, null));
+
+//			remove 1 car lane for each link with more than 1 lane. Repurpose the lane to bike. Exception: motorways
+			if (repurposeLanes) {
+				log.info("Scenario for repurposing car lanes to bike lanes is enabled. See class PrepareNetwork for more information.");
+				PrepareNetwork.prepareRepurposeCarLanesNetwork(scenario.getNetwork());
+			}
 
 //			add bike vehicle type if missing
 			Id<VehicleType> bikeTypeId = Id.create(TransportMode.bike, VehicleType.class);
@@ -226,6 +252,22 @@ public class RunMexicoCityScenario extends MATSimApplication {
 
 				if (MexicoCityUtils.isDefined(incomeAreaPath)) {
 					bind(ScoringParametersForPerson.class).to(IncomeDependentUtilityOfMoneyPersonScoringParameters.class).asEagerSingleton();
+				}
+
+				if (MexicoCityUtils.isDefined(RoadPricingOptions.roadPricingAreaPath)) {
+					install(new RoadPricingModule());
+
+//					use own RoadPricingControlerListener, which throws person money events by multiplying the toll (factor) by the agent's income
+					if (RoadPricingOptions.roadPricingType.equals(RoadPricingOptions.RoadPricingType.RELATIVE_TO_INCOME)) {
+						if (!MexicoCityUtils.isDefined(incomeAreaPath)) {
+							log.error("Path to shp file for income assignment is not given. Simulation will fail without income attributes. Please define the path to the shp as run param.");
+							throw new NoSuchElementException();
+						}
+						addControlerListenerBinding().to(MexicoCityRoadPricingControlerListener.class);
+						log.warn("Running road pricing scenario with a toll value of {}. Make sure, that this is a relative value.", RoadPricingOptions.toll);
+					} else {
+						log.warn("Running road pricing scenario with a toll value of {}. Make sure, that this is an absolute value.", RoadPricingOptions.toll);
+					}
 				}
 
 				addControlerListenerBinding().to(ModeChoiceCoverageControlerListener.class);
