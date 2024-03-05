@@ -256,7 +256,7 @@ public class RunMexicoCityCalibration extends MATSimApplication {
 
 		if (sample.isSet()) {
 			double countScale = allCar ? CAR_FACTOR : 1;
-			sw.defaultParams().sampleSize = sample.getSample() * countScale;
+			sw.sampleSize = sample.getSample() * countScale;
 		}
 	}
 

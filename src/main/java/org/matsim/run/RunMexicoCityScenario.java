@@ -152,7 +152,7 @@ public class RunMexicoCityScenario extends MATSimApplication {
 		sw.defaultParams().shp = "./area/area.shp";
 
 		if (sample.isSet()) {
-			sw.defaultParams().sampleSize = sample.getSample();
+			sw.sampleSize = sample.getSample();
 		} else {
 			log.error("Sample size is not set. Please run the scenario including a set sample size!");
 			throw new NoSuchElementException();

@@ -12,9 +12,8 @@
 		<!--<matsim.version>14.0-PR1452</matsim.version>-->
 
 		<!-- snapshot == not recommended: rather use PR-labelled release!-->
-		<!-- FIXME: Decide on version -->
 <!--		<version>15.0-SNAPSHOT</version>-->
-		<version>16.0-PR2918</version>
+		<version>16.0-PR3123</version>
 	</parent>
 
 	<modelVersion>4.0.0</modelVersion>
@@ -126,12 +125,12 @@
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi</artifactId>
-			<version>5.2.4</version>
+			<version>5.2.5</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml</artifactId>
-			<version>5.2.4</version>
+			<version>5.2.5</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.poi</groupId>
@@ -141,14 +140,19 @@
 		<dependency>
 			<groupId>org.apache.xmlbeans</groupId>
 			<artifactId>xmlbeans</artifactId>
-			<version>5.1.1</version>
+			<version>5.2.0</version>
 		</dependency>
 
 
 		<!-- Test dependencies -->
 		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-engine</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter</artifactId>
 			<scope>test</scope>
 		</dependency>
 
@@ -215,7 +219,7 @@
 					<forkCount>1</forkCount>
 					<reuseForks>false</reuseForks>
 					<!-- avoid out of memory errors: -->
-					<argLine>@{argLine} -Xmx9500m -Djava.awt.headless=true -Dmatsim.preferLocalDtds=true</argLine>
+					<argLine>@{argLine} -Djava.awt.headless=true -Dmatsim.preferLocalDtds=true</argLine>
 					<!--necessary in tu berlin gitlab. BUT not good in other places, so solve by command line switch only where needed.  kai, nov'18-->
 					<!--<useSystemClassLoader>false</useSystemClassLoader>-->
 				</configuration>
