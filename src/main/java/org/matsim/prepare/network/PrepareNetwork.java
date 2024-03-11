@@ -1,4 +1,4 @@
-package org.matsim.prepare;
+package org.matsim.prepare.network;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

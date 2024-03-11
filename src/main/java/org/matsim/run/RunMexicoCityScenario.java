@@ -19,7 +19,6 @@ import org.matsim.application.options.SampleOptions;
 import org.matsim.application.options.ShpOptions;
 import org.matsim.application.prepare.CreateLandUseShp;
 import org.matsim.application.prepare.network.CleanNetwork;
-import org.matsim.application.prepare.network.CreateNetworkFromSumo;
 import org.matsim.application.prepare.population.*;
 import org.matsim.application.prepare.pt.CreateTransitScheduleFromGtfs;
 import org.matsim.contrib.roadpricing.*;
@@ -34,6 +33,8 @@ import org.matsim.core.replanning.annealing.ReplanningAnnealerConfigGroup;
 import org.matsim.core.router.AnalysisMainModeIdentifier;
 import org.matsim.core.scoring.functions.ScoringParametersForPerson;
 import org.matsim.prepare.*;
+import org.matsim.prepare.network.CreateMexicoCityNetworkFromSumo;
+import org.matsim.prepare.network.PrepareNetwork;
 import org.matsim.prepare.opt.RunCountOptimization;
 import org.matsim.prepare.opt.SelectPlansFromIndex;
 import org.matsim.prepare.population.*;
@@ -55,7 +56,7 @@ import java.util.Set;
 @MATSimApplication.Prepare({
 	AdjustActivityToLinkDistances.class, ChangeFacilities.class, ChangeModeNames.class, CheckActivityFacilities.class, CheckCarAvailability.class, CleanNetwork.class, CorrectPtVehicleTypes.class,
 	CreateCommuterRelations.class, CreateCountsFromDatosVialesPortal.class, CreateLandUseShp.class, CreateMATSimFacilities.class, CreateMetropolitanAreaPopulation.class,
-	CreateMexicoCityPopulation.class, CreateMexicoCityScenarioConfig.class, CreateNetworkFromSumo.class, CreateTransitScheduleFromGtfs.class, CreateVehicleTypes.class,
+	CreateMexicoCityPopulation.class, CreateMexicoCityScenarioConfig.class, CreateMexicoCityNetworkFromSumo.class, CreateTransitScheduleFromGtfs.class, CreateVehicleTypes.class,
 	DownSamplePopulation.class, ExtractHomeCoordinates.class, FixSubtourModes.class, GenerateShortDistanceTrips.class, InitLocationChoice.class, MergePopulations.class,
 	PrepareBikePopulation.class, PrepareIncome.class, PrepareNetwork.class, ResolveGridCoordinates.class, RunActivitySampling.class, RunCountOptimization.class,
 	SelectPlansFromIndex.class, SplitActivityTypesDuration.class, XYToLinks.class

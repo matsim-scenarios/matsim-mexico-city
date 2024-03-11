@@ -5,7 +5,7 @@ V := v1.0
 CRS := EPSG:4485
 
 MEMORY ?= 20G
-JAR :=  matsim-mexico-city-1.x-SNAPSHOT-1a27eac-dirty.jar
+JAR :=  matsim-mexico-city-1.x-SNAPSHOT-f23b612-dirty.jar
 #JAR := matsim-mexico-city-*.jar
 
 ifndef SUMO_HOME
@@ -72,6 +72,7 @@ input/sumo.net.xml: input/network.osm
 
 # it would be nice to have a osm mx netConvert file, but this does not seem to exist. Therefore, standard sumo types are used -sme1123
 # ,$(SUMO_HOME)/data/typemap/osmNetconvertUrbanDe.typ.xml\
+# osm.lane-access true adds all allowed / disallowed modes to every lane as a parameter
 
 	$(SUMO_HOME)/bin/netconvert --osm-files $< -o=$@ --geometry.remove --ramps.guess --ramps.no-split\
 	 --type-files $(SUMO_HOME)data\typemap\osmNetconvert.typ.xml\
@@ -81,11 +82,12 @@ input/sumo.net.xml: input/network.osm
 	 --no-internal-links --keep-edges.by-vclass passenger,bicycle\
 	 --remove-edges.by-vclass hov,tram,rail,rail_urban,rail_fast,pedestrian\
 	 --output.original-names --output.street-names\
+	 --osm.lane-access true\
 	 --proj "+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"\
 
 input/first-network.xml.gz: input/sumo.net.xml
 
-	$(sc) prepare network-from-sumo $< --target-crs $(CRS) --output $@
+	$(sc) prepare network-from-sumo-mexico-city $< --target-crs $(CRS) --output $@
 
 	$(sc) prepare clean-network $@ --output $@ --modes car,ride,bike
 
