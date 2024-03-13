@@ -9,9 +9,12 @@ import org.matsim.contrib.roadpricing.RoadPricingSchemeImpl;
 import org.matsim.contrib.roadpricing.RoadPricingUtils;
 import org.matsim.core.utils.geometry.geotools.MGC;
 import org.matsim.core.utils.misc.Time;
+import org.opengis.feature.simple.SimpleFeature;
 import picocli.CommandLine;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * This class bundles some run parameter options and functionalities connected to road-pricing-scenarios.
@@ -47,18 +50,41 @@ public class RoadPricingOptions {
 			Time.parseTime("22:00:00"),
 			RoadPricingOptions.toll);
 
-		Geometry geometry = new ShpOptions(roadPricingAreaPath, null, null).getGeometry();
+		ShpOptions shp = new ShpOptions(roadPricingAreaPath, null, null);
+
+		List<SimpleFeature> features = shp.readFeatures();
 
 		for (Link link : scenario.getNetwork().getLinks().values()) {
 			if (link.getId().toString().contains("pt_")) {
 				continue;
 			}
 
-			boolean isInsideArea = MGC.coord2Point(link.getFromNode().getCoord()).within(geometry)
-				|| MGC.coord2Point(link.getToNode().getCoord()).within(geometry);
+			Geometry geometry;
 
-			if (isInsideArea) {
-				RoadPricingUtils.addLink(scheme, link.getId());
+			for (SimpleFeature feat : features) {
+				geometry = (Geometry) feat.getDefaultGeometry();
+
+				boolean isInsideArea = MGC.coord2Point(link.getFromNode().getCoord()).within(geometry)
+					&& MGC.coord2Point(link.getToNode().getCoord()).within(geometry);
+
+				boolean isRoadType = true;
+
+				List<String> roadTypes = new ArrayList<>(List.of("highway.motorway", "highway.primary", "highway.trunk", "highway.secondary"));
+
+				if (features.size() > 1) {
+//					case avenidas principales
+					if (feat.getAttribute("name").toString().equals("avenida-gran-canal") || feat.getAttribute("name").toString().equals("avenida-canal-nacional")) {
+//						add highway tertiary for avenida gran canal and avenida canal nacional
+						roadTypes.add("highway.tertiary");
+					}
+					isRoadType = roadTypes.stream().anyMatch(link.getAttributes().getAttribute("type").toString()::contains);
+				}
+
+				if (isInsideArea && isRoadType) {
+					RoadPricingUtils.addLink(scheme, link.getId());
+					link.getAttributes().putAttribute("roadPricing", "enabled");
+					break;
+				}
 			}
 		}
 	}
