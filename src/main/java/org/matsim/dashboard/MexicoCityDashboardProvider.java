@@ -21,7 +21,7 @@ public class MexicoCityDashboardProvider implements DashboardProvider {
 
 		TripDashboard trips = new TripDashboard("mode_share_ref.csv", null, null);
 
-		return List.of(trips, new RoadPricingDashboard(roadPricingAreaPath));
+		return List.of(trips, new RoadPricingDashboard());
 	}
 
 	/**

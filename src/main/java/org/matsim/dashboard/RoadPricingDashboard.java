@@ -13,12 +13,9 @@ import java.util.List;
  * Shows information about an optional road pricing policy case.
  */
 public class RoadPricingDashboard implements Dashboard {
-	String roadPricingAreaPath;
 	String share = "share";
 
-	RoadPricingDashboard(String roadPricingAreaPath) {
-		this.roadPricingAreaPath = roadPricingAreaPath;
-	}
+	public RoadPricingDashboard() {}
 	@Override
 	public void configure(Header header, Layout layout) {
 		header.title = "Road Pricing";
@@ -70,8 +67,7 @@ public class RoadPricingDashboard implements Dashboard {
 				viz.zoom = data.context().mapZoomLevel;
 				viz.height = 7.5;
 				viz.width = 2.0;
-//				TODO: parsing of roadPricingAreaPath does not work yet
-				viz.setShape(roadPricingAreaPath);
+				viz.setShape(data.compute(RoadPricingAnalysis.class, "roadPricing_area.shp"));
 			});
 	}
 }

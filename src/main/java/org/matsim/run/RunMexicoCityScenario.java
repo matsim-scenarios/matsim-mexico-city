@@ -32,14 +32,12 @@ import org.matsim.core.controler.Controler;
 import org.matsim.core.replanning.annealing.ReplanningAnnealerConfigGroup;
 import org.matsim.core.router.AnalysisMainModeIdentifier;
 import org.matsim.core.scoring.functions.ScoringParametersForPerson;
-import org.matsim.dashboard.MexicoCityDashboardProvider;
 import org.matsim.prepare.*;
 import org.matsim.prepare.network.CreateMexicoCityNetworkFromSumo;
 import org.matsim.prepare.network.PrepareNetwork;
 import org.matsim.prepare.opt.RunCountOptimization;
 import org.matsim.prepare.opt.SelectPlansFromIndex;
 import org.matsim.prepare.population.*;
-import org.matsim.simwrapper.DashboardProvider;
 import org.matsim.simwrapper.SimWrapperConfigGroup;
 import org.matsim.simwrapper.SimWrapperModule;
 import org.matsim.vehicles.VehicleType;
@@ -50,9 +48,7 @@ import playground.vsp.scoring.IncomeDependentUtilityOfMoneyPersonScoringParamete
 import javax.annotation.Nullable;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
-import java.util.HashSet;
-import java.util.NoSuchElementException;
-import java.util.Set;
+import java.util.*;
 
 @CommandLine.Command(header = ":: Open Mexico-City Scenario ::", version = RunMexicoCityScenario.VERSION, mixinStandardHelpOptions = true)
 @MATSimApplication.Prepare({
@@ -183,6 +179,9 @@ public class RunMexicoCityScenario extends MATSimApplication {
 
 		if (MexicoCityUtils.isDefined(RoadPricingOptions.roadPricingAreaPath)) {
 			ConfigUtils.addOrGetModule(config, RoadPricingConfigGroup.class).setTollLinksFile(null);
+
+//			this is needed to display the toll area on the road pricing dashboard
+			sw.defaultParams().set(MexicoCityUtils.ROAD_PRICING_AREA, RoadPricingOptions.roadPricingAreaPath.toString());
 		}
 
 		return config;
@@ -277,13 +276,6 @@ public class RunMexicoCityScenario extends MATSimApplication {
 
 				if (MexicoCityUtils.isDefined(RoadPricingOptions.roadPricingAreaPath)) {
 					install(new RoadPricingModule());
-
-					MexicoCityDashboardProvider provider = new MexicoCityDashboardProvider();
-					provider.setRoadPricingAreaPath(RoadPricingOptions.roadPricingAreaPath.toString());
-
-					bind(DashboardProvider.class).toInstance(provider);
-
-
 
 //					use own RoadPricingControlerListener, which throws person money events by multiplying the toll (factor) by the agent's income
 					if (RoadPricingOptions.roadPricingType.equals(RoadPricingOptions.RoadPricingType.RELATIVE_TO_INCOME)) {

@@ -12,7 +12,13 @@ import org.matsim.application.MATSimAppCommand;
 import org.matsim.application.options.CsvOptions;
 import org.matsim.application.options.InputOptions;
 import org.matsim.application.options.OutputOptions;
+import org.matsim.application.options.ShpOptions;
+import org.matsim.core.config.Config;
+import org.matsim.core.config.ConfigUtils;
+import org.matsim.core.utils.gis.ShapeFileWriter;
 import org.matsim.core.utils.io.IOUtils;
+import org.matsim.prepare.MexicoCityUtils;
+import org.matsim.simwrapper.SimWrapperConfigGroup;
 import picocli.CommandLine;
 import tech.tablesaw.aggregate.AggregateFunctions;
 import tech.tablesaw.api.*;
@@ -20,16 +26,18 @@ import tech.tablesaw.io.csv.CsvReadOptions;
 import tech.tablesaw.joining.DataFrameJoiner;
 import tech.tablesaw.selection.Selection;
 
+import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.*;
 
 import static tech.tablesaw.aggregate.AggregateFunctions.count;
 
 @CommandLine.Command(name = "roadPricing", description = "Calculates various road pricing related metrics.")
 @CommandSpec(
-	requires = {"personMoneyEvents.tsv", "persons.csv"},
-	produces = {"roadPricing_income_groups.csv", "roadPricing_tolled_agents.csv", "roadPricing_daytime_groups.csv", "roadPricing_tolled_agents_home_locations.csv"}
+	requires = {"personMoneyEvents.tsv", "persons.csv", "config.xml"},
+	produces = {"roadPricing_income_groups.csv", "roadPricing_tolled_agents.csv", "roadPricing_daytime_groups.csv", "roadPricing_tolled_agents_home_locations.csv", "roadPricing_area.shp"}
 )
 public class RoadPricingAnalysis implements MATSimAppCommand {
 
@@ -99,7 +107,28 @@ public class RoadPricingAnalysis implements MATSimAppCommand {
 		Table homes = joined.retainColumns(person, "home_x", "home_y");
 		homes.write().csv(output.getPath("roadPricing_tolled_agents_home_locations.csv").toFile());
 
+//		write road pricing shp such that simwrapper can access it
+		Config config = ConfigUtils.loadConfig(input.getPath("config.xml"));
+
+		writeTollAreaShpFile(config);
+
 		return 0;
+	}
+
+	private void writeTollAreaShpFile(Config config) throws IOException {
+		SimWrapperConfigGroup sw = ConfigUtils.addOrGetModule(config, SimWrapperConfigGroup.class);
+
+		ShpOptions shp = new ShpOptions(Path.of(sw.defaultParams().getValue(MexicoCityUtils.ROAD_PRICING_AREA)), null, null);
+
+		ShapeFileWriter.writeGeometries(shp.readFeatures(), output.getPath("roadPricing_area.shp").toString());
+
+//		We cannot use the same output option for 2 different files, so the string has to be manipulated
+		String prj = output.getPath("roadPricing_area.shp").toString().replace(".shp", ".prj");
+
+//		.prj file needs to be simplified to make it readable for simwrapper
+		try (BufferedWriter writer = IOUtils.getBufferedWriter(prj)) {
+			writer.write(MexicoCityUtils.CRS);
+		}
 	}
 
 	private void writeHourlyDistr(Table joined) {
