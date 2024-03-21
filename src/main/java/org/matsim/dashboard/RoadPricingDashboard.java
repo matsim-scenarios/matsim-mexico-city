@@ -67,7 +67,7 @@ public class RoadPricingDashboard implements Dashboard {
 				viz.zoom = data.context().mapZoomLevel;
 				viz.height = 7.5;
 				viz.width = 2.0;
-				viz.setShape(data.compute(RoadPricingAnalysis.class, "roadPricing_area.shp"));
+				viz.setShape(data.compute(RoadPricingAnalysis.class, "roadPricing_area.shp"), "id");
 			});
 	}
 }
