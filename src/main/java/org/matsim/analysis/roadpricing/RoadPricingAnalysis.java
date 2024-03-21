@@ -1,4 +1,4 @@
-package org.matsim.analysis;
+package org.matsim.analysis.roadpricing;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -14,12 +14,14 @@ import org.matsim.application.options.InputOptions;
 import org.matsim.application.options.OutputOptions;
 import org.matsim.core.utils.io.IOUtils;
 import picocli.CommandLine;
+import tech.tablesaw.aggregate.AggregateFunctions;
 import tech.tablesaw.api.*;
 import tech.tablesaw.io.csv.CsvReadOptions;
 import tech.tablesaw.joining.DataFrameJoiner;
 import tech.tablesaw.selection.Selection;
 
 import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
 
 import static tech.tablesaw.aggregate.AggregateFunctions.count;
@@ -79,9 +81,11 @@ public class RoadPricingAnalysis implements MATSimAppCommand {
 		}
 		Table filtered = moneyEvents.where(Selection.with(idx.toIntArray()));
 
+		double totalToll = (double) filtered.summarize("amount", AggregateFunctions.sum).apply().column("Sum [amount]").get(0);
+
 		try (CSVPrinter printer = new CSVPrinter(new FileWriter(output.getPath("roadPricing_tolled_agents.csv").toString()), CSVFormat.DEFAULT)) {
-			printer.printRecord("numberOfTolledAgents");
-			printer.printRecord(filtered.rowCount());
+			printer.printRecord("total toll paid [MXN]", totalToll, "paid_FILL1_wght400_GRAD0_opsz48.png", "https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/roadPricing/");
+			printer.printRecord("number of tolled agents", filtered.rowCount(), "tag_FILL1_wght400_GRAD0_opsz48.png", "https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/roadPricing/");
 		}
 
 		Table joined = new DataFrameJoiner(moneyEvents, person).inner(persons);
@@ -151,6 +155,7 @@ public class RoadPricingAnalysis implements MATSimAppCommand {
 
 			if (income < 0) {
 				log.error("income {} is negative. This should not happen!", income);
+				throw new IllegalArgumentException();
 			}
 
 			for (Map.Entry<String, Range<Integer>> e : labels.entrySet()) {
@@ -164,20 +169,46 @@ public class RoadPricingAnalysis implements MATSimAppCommand {
 
 		Table aggr = joined.summarize(person, count).by(incomeGroup);
 
+//		how to sort rows here? this does not work! Using workaround instead. -sme0324
 		DoubleColumn shareCol = aggr.numberColumn(1).divide(aggr.numberColumn(1).sum()).setName(this.share);
 		aggr.addColumns(shareCol);
 		aggr.sortOn(this.share);
 
-		Table result = Table.create();
-		result.addColumns(StringColumn.create(incomeGroup), DoubleColumn.create("Count [person]"), DoubleColumn.create(this.share));
+		List<String> incomeDistr = new ArrayList<>();
 
-		for (int i = 0; i < aggr.rowCount() - 1; i++) {
-			Row row = aggr.row(i);
-
-			if (!row.getString(incomeGroup).equals("")) {
-				result.addRow(i, aggr);
+		for (String k : labels.keySet()) {
+			for (int i = 0; i < aggr.rowCount() - 1; i++) {
+				Row row = aggr.row(i);
+				if (row.getString(incomeGroup).equals(k)) {
+					incomeDistr.add(k + "," + row.getDouble("Count [person]") + "," + row.getDouble("share"));
+					break;
+				}
 			}
 		}
-		result.write().csv(output.getPath("roadPricing_income_groups.csv").toFile());
+
+		incomeDistr.sort(Comparator.comparingInt(RoadPricingAnalysis::getLowerBound));
+
+		CSVFormat format = CSVFormat.DEFAULT.builder()
+			.setQuote(null)
+			.setDelimiter(',')
+			.setRecordSeparator("\r\n")
+			.build();
+
+
+		try (CSVPrinter printer = new CSVPrinter(new FileWriter(output.getPath("roadPricing_income_groups.csv").toString()), format)) {
+			for (String s : incomeDistr) {
+				printer.printRecord(s);
+			}
+		} catch (IOException e) {
+			throw new IllegalArgumentException();
+		}
+	}
+
+	private static int getLowerBound(String s) {
+		String regex = " - ";
+		if (s.contains("+")) {
+			regex = "\\+";
+		}
+		return Integer.parseInt(s.split(regex)[0]);
 	}
 }

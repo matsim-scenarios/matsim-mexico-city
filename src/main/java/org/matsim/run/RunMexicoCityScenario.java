@@ -32,12 +32,14 @@ import org.matsim.core.controler.Controler;
 import org.matsim.core.replanning.annealing.ReplanningAnnealerConfigGroup;
 import org.matsim.core.router.AnalysisMainModeIdentifier;
 import org.matsim.core.scoring.functions.ScoringParametersForPerson;
+import org.matsim.dashboard.MexicoCityDashboardProvider;
 import org.matsim.prepare.*;
 import org.matsim.prepare.network.CreateMexicoCityNetworkFromSumo;
 import org.matsim.prepare.network.PrepareNetwork;
 import org.matsim.prepare.opt.RunCountOptimization;
 import org.matsim.prepare.opt.SelectPlansFromIndex;
 import org.matsim.prepare.population.*;
+import org.matsim.simwrapper.DashboardProvider;
 import org.matsim.simwrapper.SimWrapperConfigGroup;
 import org.matsim.simwrapper.SimWrapperModule;
 import org.matsim.vehicles.VehicleType;
@@ -275,6 +277,13 @@ public class RunMexicoCityScenario extends MATSimApplication {
 
 				if (MexicoCityUtils.isDefined(RoadPricingOptions.roadPricingAreaPath)) {
 					install(new RoadPricingModule());
+
+					MexicoCityDashboardProvider provider = new MexicoCityDashboardProvider();
+					provider.setRoadPricingAreaPath(RoadPricingOptions.roadPricingAreaPath.toString());
+
+					bind(DashboardProvider.class).toInstance(provider);
+
+
 
 //					use own RoadPricingControlerListener, which throws person money events by multiplying the toll (factor) by the agent's income
 					if (RoadPricingOptions.roadPricingType.equals(RoadPricingOptions.RoadPricingType.RELATIVE_TO_INCOME)) {

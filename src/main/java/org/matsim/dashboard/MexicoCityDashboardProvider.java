@@ -14,13 +14,20 @@ import java.util.List;
  */
 public class MexicoCityDashboardProvider implements DashboardProvider {
 
+	String roadPricingAreaPath;
+
 	@Override
 	public List<Dashboard> getDashboards(Config config, SimWrapper simWrapper) {
 
-//		TripDashboard trips = new TripDashboard("mode_share_ref.csv", "mode_share_per_dist_ref.csv", "mode_users_ref.csv");
 		TripDashboard trips = new TripDashboard("mode_share_ref.csv", null, null);
 
-		return List.of(trips);
+		return List.of(trips, new RoadPricingDashboard(roadPricingAreaPath));
 	}
 
+	/**
+	 * set path to shp file of road pricing area.
+	 */
+	public void setRoadPricingAreaPath(String roadPricingAreaPath) {
+		this.roadPricingAreaPath = roadPricingAreaPath;
+	}
 }
