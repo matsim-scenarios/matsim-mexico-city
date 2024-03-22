@@ -1,4 +1,12 @@
 # Add own ignores on top, don't edit the template
+*manualLinkAssignment.csv
+*network.osm
+*table-activities.csv
+*table-households.csv
+*table-persons.csv
+*table-trips.csv
+*table-unscaled-persons.csv
+*remove-railway.xml
 
 
 
