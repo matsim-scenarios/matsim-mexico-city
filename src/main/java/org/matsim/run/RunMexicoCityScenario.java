@@ -48,9 +48,7 @@ import playground.vsp.scoring.IncomeDependentUtilityOfMoneyPersonScoringParamete
 import javax.annotation.Nullable;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
-import java.util.HashSet;
-import java.util.NoSuchElementException;
-import java.util.Set;
+import java.util.*;
 
 @CommandLine.Command(header = ":: Open Mexico-City Scenario ::", version = RunMexicoCityScenario.VERSION, mixinStandardHelpOptions = true)
 @MATSimApplication.Prepare({
@@ -181,6 +179,9 @@ public class RunMexicoCityScenario extends MATSimApplication {
 
 		if (MexicoCityUtils.isDefined(RoadPricingOptions.roadPricingAreaPath)) {
 			ConfigUtils.addOrGetModule(config, RoadPricingConfigGroup.class).setTollLinksFile(null);
+
+//			this is needed to display the toll area on the road pricing dashboard
+			sw.defaultParams().set(MexicoCityUtils.ROAD_PRICING_AREA, RoadPricingOptions.roadPricingAreaPath.toString());
 		}
 
 		return config;

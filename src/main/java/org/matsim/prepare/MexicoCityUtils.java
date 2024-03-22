@@ -53,6 +53,8 @@ public final class MexicoCityUtils {
 //	-> avg of 2017: 1€=21.344 MXN
 	public static final Double PESO_EURO = 21.344;
 
+	public static final String ROAD_PRICING_AREA = "roadPricingAreaShp";
+
 	//do not instantiate
 	private MexicoCityUtils() {
 	}
