@@ -75,7 +75,7 @@ public class RunMexicoCityScenario extends MATSimApplication {
 	@CommandLine.Option(names = "--repurpose-lanes", defaultValue = "false", description = "Enables the simulation of a lane repurposing scenario (car -> bike): See class PrepareNetwork for details.")
 	private boolean repurposeLanes;
 
-	@CommandLine.Option(names = "--income-area", description = "Path to SHP file specifying income ranges. If provided, income dependent scoring will be used.")
+	@CommandLine.Option(names = "--income-area", description = "Path to SHP file specifying income ranges. If provided, income dependent scoring will be used.", required = true)
 	private Path incomeAreaPath;
 
 	@CommandLine.Option(names = "--random-seed", defaultValue = "4711", description = "setting random seed for the simulation. Can be used to compare several runs with the same config.")
