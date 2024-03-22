@@ -176,6 +176,9 @@ input/mexico-city-v1.0.counts_car.2017.xml: ../../public-svn/matsim/scenarios/co
 		--manual-matched-counts input/manualLinkAssignment.csv\
 		--year 2017
 
+	$(sc) prepare scale-counts\
+		--input $@
+
 # create first scenario specific config
 input/mexico-city-v1.0-1pct.input.config.xml: ./input/v1.0 ./input
 	$(sc) prepare config\
