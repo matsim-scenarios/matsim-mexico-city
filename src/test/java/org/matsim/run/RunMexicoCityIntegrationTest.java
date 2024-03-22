@@ -36,7 +36,8 @@ public class RunMexicoCityIntegrationTest {
 
 		ConfigUtils.addOrGetModule(config, SimWrapperConfigGroup.class).defaultDashboards = SimWrapperConfigGroup.Mode.disabled;
 
-		assert MATSimApplication.execute(RunMexicoCityScenario.class, config, "run", "--1pct", "--bikes-on-network") == 0 : "Must return non error code";
+		assert MATSimApplication.execute(RunMexicoCityScenario.class, config, "run", "--1pct", "--bikes-on-network",
+			"--income-area", "input/v1.0/nivel_amai/nivel_amai.shp") == 0 : "Must return non error code";
 
 		assertThat(outputPath)
 			.exists()
