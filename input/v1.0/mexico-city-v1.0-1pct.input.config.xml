@@ -16155,7 +16155,7 @@
 		<!-- Default:true; Defines whether time mutation changes an activity's duration. -->
 		<param name="mutationAffectsDuration" value="true" />
 		<!-- Default:1800.0; Defines how many seconds a time mutation can maximally shift a time. -->
-		<param name="mutationRange" value="1800.0" />
+		<param name="mutationRange" value="900.0" />
 		<!-- Mutation Range Step, default = 1 second -->
 		<param name="mutationRangeStep" value="1.0" />
 	</module>

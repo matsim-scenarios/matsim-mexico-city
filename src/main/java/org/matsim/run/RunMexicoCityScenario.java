@@ -67,7 +67,7 @@ public class RunMexicoCityScenario extends MATSimApplication {
 
 	Logger log = LogManager.getLogger(RunMexicoCityScenario.class);
 
-	@CommandLine.Option(names = "--annealing", defaultValue = "false", description = "Defines if replanning annealing is used or not.")
+	@CommandLine.Option(names = "--annealing", defaultValue = "true", description = "Defines if replanning annealing is used or not.")
 	private boolean annealing;
 	@CommandLine.Option(names = "--bikes-on-network", defaultValue = "false", description = "Define how bicycles are handled: True: as network mode, false: as teleported mode.")
 	private boolean bikeOnNetwork;

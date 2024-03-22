@@ -94,6 +94,8 @@ public class CreateMexicoCityScenarioConfig implements MATSimAppCommand {
 
 		configureQsimModule(config);
 
+		config.timeAllocationMutator().setMutationRange(900.);
+
 		config.replanning().setFractionOfIterationsToDisableInnovation(0.9);
 		config.replanning().clearStrategySettings();
 
