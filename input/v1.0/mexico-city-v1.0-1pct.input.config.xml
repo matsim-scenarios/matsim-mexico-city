@@ -14,8 +14,8 @@
 		<param name="cleanItersAtEnd" value="keep" />
 		<!-- Compression algorithm to use when writing out data to files. Possible values: [none, gzip, lz4, zst] -->
 		<param name="compressionType" value="gzip" />
-		<!-- Sets whether graphs showing some analyses should automatically be generated during the simulation. The generation of graphs usually takes a small amount of time that does not have any weight in big simulations, but add a significant overhead in smaller runs or in test cases where the graphical output is not even requested. -->
-		<param name="createGraphs" value="true" />
+		<!-- Sets the interval in which graphs are generated. Default is 1. If set to 0, no graphs are generated. The generation of graphs usually takes a small amount of time that does not have any weight in big simulations, but add a significant overhead in smaller runs or in test cases where the graphical output is not even requested. -->
+		<param name="createGraphsInterval" value="1" />
 		<!-- Defines when the scoring functions for the population are created. Default=IterationStarts. Possible values: [IterationStarts, BeforeMobsim] -->
 		<param name="createScoringFunctionType" value="IterationStarts" />
 		<!-- true if at the end of a run, plans, network, config etc should be dumped to a file -->
@@ -28,7 +28,7 @@
 		<!-- Default=0. First Iteration of a simulation. -->
 		<param name="firstIteration" value="0" />
 		<!-- Default=1000. Last Iteration of a simulation. -->
-		<param name="lastIteration" value="1000" />
+		<param name="lastIteration" value="900" />
 		<!-- Defines which mobility simulation will be used. Currently supported: [qsim, JDEQSim, hermes]
 		Depending on the chosen mobsim, you'll have to add additional config modules to configure the corresponding mobsim.
 		For 'qsim', add a module 'qsim' to the config. -->
@@ -180,7 +180,7 @@
 		<!-- The (initial) width of the links of the network. Use positive floating point values. This is used only for visualisation. -->
 		<param name="linkWidth" value="30.0" />
 		<!-- [comma-separated list] Defines which modes are congested modes. Technically, these are the modes that the departure handler of the netsimengine handles.  Effective cell size, effective lane width, flow capacity factor, and storage capacity factor need to be set with diligence.  Need to be vehicular modes to make sense. -->
-		<param name="mainMode" value="car" />
+		<param name="mainMode" value="car,bike" />
 		<!-- Shortens a link in the visualization, i.e. its start and end point are moved into towards the center. Does not affect traffic flow.  -->
 		<param name="nodeOffset" value="0.0" />
 		<!-- Number of threads used for the QSim.  Note that this setting is independent from the "global" threads setting.  In contrast to earlier versions, the non-parallel special version is no longer there. -->
@@ -237,33 +237,49 @@
 			<!-- subpopulation to which the strategy applies. "null" refers to the default population, that is, the set of persons for which no explicit subpopulation is defined (ie no subpopulation attribute) -->
 			<param name="subpopulation" value="person" />
 			<!-- weight of a strategy: for each agent, a strategy will be selected with a probability proportional to its weight -->
-			<param name="weight" value="-1.0" />
+			<param name="weight" value="0.3" />
 		</parameterset>
 		<parameterset type="strategysettings" >
 			<param name="disableAfterIteration" value="-1" />
 			<param name="executionPath" value="null" />
 			<param name="strategyName" value="ChangeExpBeta" />
 			<param name="subpopulation" value="person" />
-			<param name="weight" value="-1.0" />
+			<param name="weight" value="2.0" />
 		</parameterset>
 		<parameterset type="strategysettings" >
 			<param name="disableAfterIteration" value="-1" />
 			<param name="executionPath" value="null" />
 			<param name="strategyName" value="ReRoute" />
 			<param name="subpopulation" value="person" />
-			<param name="weight" value="-1.0" />
+			<param name="weight" value="0.3" />
 		</parameterset>
 		<parameterset type="strategysettings" >
 			<param name="disableAfterIteration" value="-1" />
 			<param name="executionPath" value="null" />
 			<param name="strategyName" value="SubtourModeChoice" />
 			<param name="subpopulation" value="person" />
-			<param name="weight" value="-1.0" />
+			<param name="weight" value="0.3" />
 		</parameterset>
 	</module>
 	<module name="replanningAnnealer" >
 		<!-- Activate the scaling of replanning modules using an annealing approach rather than fixed rates. -->
-		<param name="activateAnnealingModule" value="false" />
+		<param name="activateAnnealingModule" value="true" />
+		<parameterset type="AnnealingVariable" >
+			<!-- list of config parameters that shall be annealed. Currently supported: globalInnovationRate, BrainExpBeta, PathSizeLogitBeta, learningRate. Default is globalInnovationRate -->
+			<param name="annealParameter" value="globalInnovationRate" />
+			<!-- options: linear, exponential, geometric, msa, sigmoid and disabled (no annealing). -->
+			<param name="annealType" value="sigmoid" />
+			<!-- subpopulation to have the global innovation rate adjusted. Not applicable when annealing with other parameters. -->
+			<param name="defaultSubpopulation" value="person" />
+			<!-- final annealing value. When the annealing function reaches this value, further results remain constant. -->
+			<param name="endValue" value="0.01" />
+			<!-- this parameter enters the exponential and sigmoid formulas. May be an iteration or a share, i.e. 0.5 for halfLife at 50% of iterations. Exponential: startValue / exp(it/halfLife) -->
+			<param name="halfLife" value="0.5" />
+			<!-- sigmoid: 1/(1+e^(shapeFactor*(it - halfLife))); geometric: startValue * shapeFactor^it; msa: startValue / it^shapeFactor -->
+			<param name="shapeFactor" value="0.01" />
+			<!-- start value for annealing. -->
+			<param name="startValue" value="0.5" />
+		</parameterset>
 	</module>
 	<module name="routing" >
 		<!-- Defines how access and egress to main mode is simulated. Either of [none, accessEgressModeToLink, walkConstantTimeToLink, accessEgressModeToLinkPlusTimeConstant], Current default=none which means no access or egress trips are simulated. -->
@@ -271,7 +287,7 @@
 		<!-- Some typical teleportation routing params are set by default, such as for walk and bike.  Setting this switch to "true" will clear them.  Note that this will also clear settings for helper modes such as for non_network_walk -->
 		<param name="clearDefaultTeleportedModeParams" value="true" />
 		<!-- All the modes for which the router is supposed to generate network routes (like car) -->
-		<param name="networkModes" value="car" />
+		<param name="networkModes" value="car,bike" />
 		<!-- strength of the randomness for the utility of money in routing under toll.  Leads to Pareto-optimal route with randomly drawn money-vs-other-attributes tradeoff. Technically the width parameter of a log-normal distribution. 3.0 seems to be a good value.  -->
 		<param name="routingRandomness" value="3.0" />
 		<parameterset type="teleportedModeParameters" >
@@ -285,12 +301,6 @@
 		<parameterset type="teleportedModeParameters" >
 			<param name="beelineDistanceFactor" value="1.3" />
 			<param name="mode" value="taxibus" />
-			<param name="teleportedModeFreespeedFactor" value="null" />
-			<param name="teleportedModeSpeed" value="3.1388889" />
-		</parameterset>
-		<parameterset type="teleportedModeParameters" >
-			<param name="beelineDistanceFactor" value="1.3" />
-			<param name="mode" value="bike" />
 			<param name="teleportedModeFreespeedFactor" value="null" />
 			<param name="teleportedModeSpeed" value="3.1388889" />
 		</parameterset>
@@ -400,6 +410,30 @@
 				<param name="priority" value="1.0" />
 				<param name="scoringThisActivityAtAll" value="false" />
 				<param name="typicalDuration" value="00:00:01" />
+				<param name="typicalDurationScoreComputation" value="relative" />
+			</parameterset>
+			<parameterset type="activityParams" >
+				<param name="activityType" value="ride interaction" />
+				<param name="closingTime" value="undefined" />
+				<param name="earliestEndTime" value="undefined" />
+				<param name="latestStartTime" value="undefined" />
+				<param name="minimalDuration" value="undefined" />
+				<param name="openingTime" value="undefined" />
+				<param name="priority" value="1.0" />
+				<param name="scoringThisActivityAtAll" value="false" />
+				<param name="typicalDuration" value="undefined" />
+				<param name="typicalDurationScoreComputation" value="relative" />
+			</parameterset>
+			<parameterset type="activityParams" >
+				<param name="activityType" value="taxibus interaction" />
+				<param name="closingTime" value="undefined" />
+				<param name="earliestEndTime" value="undefined" />
+				<param name="latestStartTime" value="undefined" />
+				<param name="minimalDuration" value="undefined" />
+				<param name="openingTime" value="undefined" />
+				<param name="priority" value="1.0" />
+				<param name="scoringThisActivityAtAll" value="false" />
+				<param name="typicalDuration" value="undefined" />
 				<param name="typicalDurationScoreComputation" value="relative" />
 			</parameterset>
 			<parameterset type="activityParams" >
@@ -16064,7 +16098,7 @@
 			</parameterset>
 			<parameterset type="modeParams" >
 				<!-- [utils] alternative-specific constant.  Normally per trip, but that is probably buggy for multi-leg trips. -->
-				<param name="constant" value="0.0" />
+				<param name="constant" value="0.8151506956880188" />
 				<!-- [unit_of_money/day] Fixed cost of mode, per day. -->
 				<param name="dailyMonetaryConstant" value="-70.08185900455331" />
 				<!-- [utils] daily utility constant. default=0 to be backwards compatible -->
@@ -16078,7 +16112,7 @@
 				<param name="monetaryDistanceRate" value="-0.0019695399591772647" />
 			</parameterset>
 			<parameterset type="modeParams" >
-				<param name="constant" value="0.0" />
+				<param name="constant" value="0.9644752307927055" />
 				<param name="dailyMonetaryConstant" value="-10.385" />
 				<param name="dailyUtilityConstant" value="0.0" />
 				<param name="marginalUtilityOfDistance_util_m" value="0.0" />
@@ -16096,7 +16130,7 @@
 				<param name="monetaryDistanceRate" value="0.0" />
 			</parameterset>
 			<parameterset type="modeParams" >
-				<param name="constant" value="0.0" />
+				<param name="constant" value="-6.068944949987844" />
 				<param name="dailyMonetaryConstant" value="0.0" />
 				<param name="dailyUtilityConstant" value="0.0" />
 				<param name="marginalUtilityOfDistance_util_m" value="0.0" />
@@ -16123,7 +16157,7 @@
 				<param name="monetaryDistanceRate" value="0.0" />
 			</parameterset>
 			<parameterset type="modeParams" >
-				<param name="constant" value="0.0" />
+				<param name="constant" value="-0.4822438895928063" />
 				<param name="dailyMonetaryConstant" value="-14.0" />
 				<param name="dailyUtilityConstant" value="0.0" />
 				<param name="marginalUtilityOfDistance_util_m" value="0.0" />
@@ -16131,6 +16165,32 @@
 				<param name="mode" value="taxibus" />
 				<param name="monetaryDistanceRate" value="0.0" />
 			</parameterset>
+		</parameterset>
+	</module>
+	<module name="simwrapper" >
+		<!-- Whether default dashboards are loaded via SPI. -->
+		<param name="defaultDashboards" value="enabled" />
+		<!-- Set of simple class names or fully qualified class names of dashboards to exclude -->
+		<param name="exclude" value="" />
+		<!-- Set of packages to scan for dashboard provider classes. -->
+		<param name="packages" value="" />
+		<!-- Sample size of the run, which may be required by certain analysis functions. -->
+		<param name="sampleSize" value="0.01" />
+		<parameterset type="params" >
+			<!-- Name of the context, empty string means default context. -->
+			<param name="context" value="" />
+			<!-- Tuple of two coordinate separated with ',' that may be used to define the center of map views. -->
+			<param name="mapCenter" value="null" />
+			<!-- Default zoom level used for map view. -->
+			<param name="mapZoomLevel" value="null" />
+			<!-- Shp file that may be used by analysis functions that support shp file input. -->
+			<param name="shp" value="null" />
+		</parameterset>
+		<parameterset type="params" >
+			<param name="context" value="" />
+			<param name="mapCenter" value="-99.13, 19.43" />
+			<param name="mapZoomLevel" value="9.1" />
+			<param name="shp" value="./area/area.shp" />
 		</parameterset>
 	</module>
 	<module name="subtourModeChoice" >
@@ -16146,6 +16206,24 @@
 		<param name="modes" value="taxibus,car,bike,walk,pt" />
 		<!-- Defines the probability of changing a single trip for a unchained mode instead of subtour. -->
 		<param name="probaForRandomSingleTripMode" value="0.5" />
+	</module>
+	<module name="swissRailRaptor" >
+		<!-- Sets whether intermodal access and egress modes are selected by least cost (default) or randomly chosen out of the available access / egress modes. -->
+		<param name="intermodalAccessEgressModeSelection" value="CalcLeastCostModePerStop" />
+		<param name="intermodalLegOnlyHandling" value="forbid" />
+		<!-- Possible values: Default,Individual -->
+		<param name="scoringParameters" value="Default" />
+		<param name="transferPenaltyBaseCost" value="0.0" />
+		<param name="transferPenaltyCostPerTravelTimeHour" value="0.0" />
+		<param name="transferPenaltyMaxCost" value="Infinity" />
+		<param name="transferPenaltyMinCost" value="-Infinity" />
+		<!-- time deducted from transfer walk leg during transfers between pt legs in order to avoid missing a vehicle by a few seconds due to delays. -->
+		<param name="transferWalkMargin" value="5.0" />
+		<!-- If true, SwissRailRaptor tries to detect when agents cannot board a vehicle in the previous iteration because it is already full and tries to find an alternative route instead. -->
+		<param name="useCapacityConstraints" value="false" />
+		<param name="useIntermodalAccessEgress" value="false" />
+		<param name="useModeMappingForPassengers" value="false" />
+		<param name="useRangeQuery" value="false" />
 	</module>
 	<module name="timeAllocationMutator" >
 		<!-- Latest Activity End Time. Default = 24:00:00 -->
