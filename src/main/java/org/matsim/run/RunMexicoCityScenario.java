@@ -166,10 +166,10 @@ public class RunMexicoCityScenario extends MATSimApplication {
 //			remove bike as network mode + add bike as teleported mode
 			if (config.routing().getNetworkModes().contains(TransportMode.bike)) {
 
-                Set<String> networkModes = new HashSet<>(config.routing().getNetworkModes()
-                        .stream()
-                        .filter(m -> !m.equals(TransportMode.bike))
-                        .toList());
+				Set<String> networkModes = new HashSet<>(config.routing().getNetworkModes()
+					.stream()
+					.filter(m -> !m.equals(TransportMode.bike))
+					.toList());
 
 				config.routing().setNetworkModes(networkModes);
 			}
