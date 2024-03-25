@@ -19,7 +19,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.github.matsim-scenarios</groupId>
 	<artifactId>matsim-mexico-city</artifactId>
-	<version>1.x-SNAPSHOT</version>
+	<version>1.0-SNAPSHOT</version>
 
 	<name>MATSim Open Mexico-City Model</name>
 	<description>MATSim Open Mexico-City Model</description>

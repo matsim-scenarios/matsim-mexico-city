@@ -11,16 +11,16 @@ import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class RunMexicoCityIntegrationTest {
+class RunMexicoCityIntegrationTest {
 
 	String URL = "https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/";
 
 	@Test
-	public void runPoint1PctIntegrationTest() {
+	 void runPoint1PctIntegrationTest() {
 
-		double sampleSize = 0.001;
+		double sampleSize = 0.0001;
 
-		Path outputPath = Path.of("output/it-" + sampleSize * 100 + "pct");
+		Path outputPath = Path.of("output/it-0.1pct");
 
 		Config config = ConfigUtils.loadConfig("input/v1.0/mexico-city-v1.0-1pct.input.config.xml");
 
@@ -36,7 +36,8 @@ public class RunMexicoCityIntegrationTest {
 
 		ConfigUtils.addOrGetModule(config, SimWrapperConfigGroup.class).defaultDashboards = SimWrapperConfigGroup.Mode.disabled;
 
-		assert MATSimApplication.execute(RunMexicoCityScenario.class, config, "run", "--1pct", "--bikes-on-network") == 0 : "Must return non error code";
+		assert MATSimApplication.execute(RunMexicoCityScenario.class, config, "run", "--1pct",
+			"--income-area", "input/v1.0/nivel_amai/nivel_amai.shp") == 0 : "Must return non error code";
 
 		assertThat(outputPath)
 			.exists()

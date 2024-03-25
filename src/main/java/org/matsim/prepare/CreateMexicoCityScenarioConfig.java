@@ -67,9 +67,9 @@ public class CreateMexicoCityScenarioConfig implements MATSimAppCommand {
 
 		Config config = ConfigUtils.createConfig();
 
-		config.controller().setOutputDirectory("./output/mexico-city-1pct");
+		config.controller().setOutputDirectory("./output/output-mexico-city-v1.0-1pct");
 		config.controller().setRoutingAlgorithmType(ControllerConfigGroup.RoutingAlgorithmType.SpeedyALT);
-		config.controller().setRunId("mexico-city-1pct");
+		config.controller().setRunId("mexico-city-v1.0-1pct");
 		config.controller().setWriteEventsInterval(100);
 		config.controller().setWritePlansInterval(100);
 
@@ -93,6 +93,8 @@ public class CreateMexicoCityScenarioConfig implements MATSimAppCommand {
 		configureRoutingModule(config);
 
 		configureQsimModule(config);
+
+		config.timeAllocationMutator().setMutationRange(900.);
 
 		config.replanning().setFractionOfIterationsToDisableInnovation(0.9);
 		config.replanning().clearStrategySettings();
