@@ -69,7 +69,7 @@ public class RunMexicoCityScenario extends MATSimApplication {
 
 	@CommandLine.Option(names = "--annealing", defaultValue = "true", description = "Defines if replanning annealing is used or not.")
 	private boolean annealing;
-	@CommandLine.Option(names = "--bikes-on-network", defaultValue = "false", description = "Define how bicycles are handled: True: as network mode, false: as teleported mode.")
+	@CommandLine.Option(names = "--bikes-on-network", defaultValue = "true", description = "Define how bicycles are handled: True: as network mode, false: as teleported mode.")
 	private boolean bikeOnNetwork;
 
 	@CommandLine.Option(names = "--repurpose-lanes", defaultValue = "false", description = "Enables the simulation of a lane repurposing scenario (car -> bike): See class PrepareNetwork for details.")
@@ -147,17 +147,41 @@ public class RunMexicoCityScenario extends MATSimApplication {
 		}
 
 		if (bikeOnNetwork) {
-//			remove bike as teleported mode (standard)
-			config.routing().removeTeleportedModeParams(TransportMode.bike);
-			Set<String> networkModes = new HashSet<>();
-			networkModes.addAll(config.routing().getNetworkModes());
-			networkModes.add(TransportMode.bike);
-			config.routing().setNetworkModes(networkModes);
+//			remove bike as teleported mode + add as network mode
+			if (config.routing().getTeleportedModeParams().containsKey(TransportMode.bike)) {
+				config.routing().removeTeleportedModeParams(TransportMode.bike);
+			}
 
-			config.qsim().setMainModes(networkModes);
+			if (!config.routing().getNetworkModes().contains(TransportMode.bike)) {
+				Set<String> networkModes = new HashSet<>();
+				networkModes.addAll(config.routing().getNetworkModes());
+				networkModes.add(TransportMode.bike);
+				config.routing().setNetworkModes(networkModes);
+
+				config.qsim().setMainModes(networkModes);
+			}
 
 			log.info("Deleted bike as a teleported mode and add added it as a network mode. Bike will be simulated on the network.");
 		} else {
+//			remove bike as network mode + add bike as teleported mode
+			if (config.routing().getNetworkModes().contains(TransportMode.bike)) {
+
+                Set<String> networkModes = new HashSet<>(config.routing().getNetworkModes()
+                        .stream()
+                        .filter(m -> !m.equals(TransportMode.bike))
+                        .toList());
+
+				config.routing().setNetworkModes(networkModes);
+			}
+
+			if (!config.routing().getTeleportedModeParams().containsKey(TransportMode.bike)) {
+				RoutingConfigGroup.TeleportedModeParams bike = new RoutingConfigGroup.TeleportedModeParams(TransportMode.bike);
+				bike.setBeelineDistanceFactor(1.3);
+				bike.setTeleportedModeSpeed(3.1388889);
+
+				config.routing().addTeleportedModeParams(bike);
+			}
+
 			log.info("Bike will be simulated as teleported mode.");
 		}
 
