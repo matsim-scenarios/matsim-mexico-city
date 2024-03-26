@@ -16,9 +16,8 @@ authors:
     affiliation: Technische Universität Berlin
     orcid: 'https://orcid.org/0000-0002-6354-4529'
 
-url: "https://github.com/matsim-scenarios/matsim-mexico-city"
-TODO: adapt release date
-date-released: 2023-01-01
-year: 2023
+url: "https://github.com/matsim-scenarios/matsim-mexico-city/tree/1.0"
+date-released: 2024-03-26
+year: 2024
 version: 1.0
 license: AGPL-3.0
