@@ -3,7 +3,6 @@ library(matsim)
 library(ggalluvial)
 library(ggplot2)
 
-# TODO change path to cluster output folder of repurpose lanes scenario. + make base trips path relative to wd
 setwd("Y:/net/ils/matsim-mexico-city/case-studies/lane-repurposing/output/output-mexico-city-v1.0-1pct-lane-repurposing")
 
 baseTripsFile <- list.files(path = "../../../baseCase/output/output-mexico-city-v1.0-1pct", pattern = "output_trips.csv.gz", full.names = TRUE)
