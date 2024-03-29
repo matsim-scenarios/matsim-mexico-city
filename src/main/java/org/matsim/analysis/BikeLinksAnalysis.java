@@ -20,24 +20,34 @@ import org.matsim.application.MATSimAppCommand;
 import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.events.EventsUtils;
 import org.matsim.core.network.NetworkUtils;
+import org.matsim.dashboard.LaneRepurposingDashboard;
+import org.matsim.simwrapper.SimWrapper;
 import org.matsim.vehicles.Vehicle;
 import picocli.CommandLine;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.*;
+import java.util.stream.Stream;
 
 import static org.matsim.application.ApplicationUtils.globFile;
 
-@CommandLine.Command(name = "bike-links", description = "Analyze and check vehicles, which travel on bike links created for the lane repurposing scenario.")
+@CommandLine.Command(name = "bike-links", description = "Analyze and check vehicles, which travel on bike links created for the lane repurposing scenario. " +
+	"This class also creates a dashboard to visualize the data.")
 public class BikeLinksAnalysis implements MATSimAppCommand, LinkEnterEventHandler, LinkLeaveEventHandler, VehicleEntersTrafficEventHandler, VehicleLeavesTrafficEventHandler {
 
 	Logger log = LogManager.getLogger(BikeLinksAnalysis.class);
 
 	@CommandLine.Option(names = "--dir", description = "Path to run directory.")
 	private Path runDir;
-	@CommandLine.Option(names = "--output", description = "Path to output directory.", defaultValue = "/analysis/repurposeLanes")
+	@CommandLine.Option(names = "--output", description = "Path to output directory.", defaultValue = "./analysis/repurposeLanes/")
 	private String output;
 
 	private Map<Id<Vehicle>, List<Id<Link>>> carsOnBikeLinks = new HashMap<>();
@@ -88,6 +98,19 @@ public class BikeLinksAnalysis implements MATSimAppCommand, LinkEnterEventHandle
 			}
 		}
 
+		List<Double> travelTimes = new ArrayList<>();
+		List<Double> travelDists = new ArrayList<>();
+		List<Double> avgSpeeds = new ArrayList<>();
+		List<Double> totalTravelTimes = new ArrayList<>();
+		List<Double> totalTravelDists = new ArrayList<>();
+		List<Double> totalAvgSpeeds = new ArrayList<>();
+		List<Double> sharesTravelTimeBikeLinks = new ArrayList<>();
+		List<Double> sharesTravelDistBikeLinks = new ArrayList<>();
+
+
+		BikeData meanStats = new BikeData(Id.createVehicleId("0"), 0, 0, 0, 0,
+			0, 0, 0, 0);
+
 //		write bike stats on bike links
 		try (CSVPrinter printer = new CSVPrinter(new FileWriter(analysisDir.getPath() + "/bikes_on_bike_links_stats.csv"), CSVFormat.DEFAULT)) {
 			printer.printRecord("vehicleId", "travelTime [s]", "travelDistance [m]", "avgSpeed [m/s]", "totalTravelTime [s]",
@@ -96,10 +119,137 @@ public class BikeLinksAnalysis implements MATSimAppCommand, LinkEnterEventHandle
 			for (BikeData data : this.bikeData) {
 				printer.printRecord(data.bikeId, data.travelTime, data.travelDist, data.avgSpeed, data.totalTravelTime, data.totalTravelDist, data.totalAvgSpeed,
 					data.shareTravelTimeBikeLink, data.shareTravelDistBikeLink);
+
+				meanStats.travelTime += data.travelTime;
+				meanStats.travelDist += data.travelDist;
+				meanStats.avgSpeed += data.avgSpeed;
+				meanStats.totalTravelTime += data.totalTravelTime;
+				meanStats.totalTravelDist += data.totalTravelDist;
+				meanStats.totalAvgSpeed += data.totalAvgSpeed;
+				meanStats.shareTravelTimeBikeLink += data.shareTravelTimeBikeLink;
+				meanStats.shareTravelDistBikeLink += data.shareTravelDistBikeLink;
+
+				travelTimes.add(data.travelTime);
+				travelDists.add(data.travelDist);
+				avgSpeeds.add(data.avgSpeed);
+				totalTravelTimes.add(data.totalTravelTime);
+				totalTravelDists.add(data.totalTravelDist);
+				totalAvgSpeeds.add(data.totalAvgSpeed);
+				sharesTravelTimeBikeLinks.add(data.shareTravelTimeBikeLink);
+				sharesTravelDistBikeLinks.add(data.shareTravelDistBikeLink);
 			}
 		}
 
+
+		meanStats.travelTime = meanStats.travelTime / this.bikeData.size();
+		meanStats.travelDist = meanStats.travelDist / this.bikeData.size();
+		meanStats.avgSpeed = meanStats.avgSpeed / this.bikeData.size();
+		meanStats.totalTravelTime = meanStats.totalTravelTime / this.bikeData.size();
+		meanStats.totalTravelDist = meanStats.totalTravelDist / this.bikeData.size();
+		meanStats.totalAvgSpeed = meanStats.totalAvgSpeed / this.bikeData.size();
+		meanStats.shareTravelTimeBikeLink = meanStats.shareTravelTimeBikeLink / this.bikeData.size();
+		meanStats.shareTravelDistBikeLink = meanStats.shareTravelDistBikeLink / this.bikeData.size();
+
+
+		BikeData medianStats = new BikeData(Id.createVehicleId("0"), getMedian(travelTimes), getMedian(travelDists), getMedian(avgSpeeds), getMedian(totalTravelTimes),
+			getMedian(totalTravelDists), getMedian(totalAvgSpeeds), getMedian(sharesTravelTimeBikeLinks), getMedian(sharesTravelDistBikeLinks));
+
+		DecimalFormat f = new DecimalFormat("0.00", new DecimalFormatSymbols(Locale.ENGLISH));
+
+//		write avg share stats
+		try (CSVPrinter printer = new CSVPrinter(new FileWriter(analysisDir.getPath() + "/avg_share_stats.csv"), CSVFormat.DEFAULT)) {
+			printer.printRecord("\"mean share of travel time [s] on bike-only links\"", f.format(meanStats.shareTravelTimeBikeLink));
+			printer.printRecord("\"median share of travel time [s] on bike-only links\"", f.format(medianStats.shareTravelTimeBikeLink));
+			printer.printRecord("\"mean share of travel dist [m] on bike-only links\"", f.format(meanStats.shareTravelDistBikeLink));
+			printer.printRecord("\"median share of travel dist [m] on bike-only links\"", f.format(medianStats.shareTravelDistBikeLink));
+			printer.printRecord("\"cars traveling on bike-only links\"", this.carsOnBikeLinks.size());
+		}
+
+//		write avg stats
+		try (CSVPrinter printer = new CSVPrinter(new FileWriter(analysisDir.getPath() + "/avg_stats.csv"), CSVFormat.DEFAULT)) {
+			printer.printRecord("\"mean travel time [s] on bike-only links\"", f.format(meanStats.travelTime));
+			printer.printRecord("\"median travel time [s] on bike-only links\"", f.format(medianStats.travelTime));
+			printer.printRecord("\"mean travel dist [m] on bike-only links\"", f.format(meanStats.travelDist));
+			printer.printRecord("\"median travel dist [m] on bike-only links\"", f.format(medianStats.travelDist));
+			printer.printRecord("\"mean travel speed [m/s] on bike-only links\"", f.format(meanStats.avgSpeed));
+			printer.printRecord("\"median travel speed [m/s] on bike-only links\"", f.format(medianStats.avgSpeed));
+			printer.printRecord("\"mean travel time [s] on all links\"", f.format(meanStats.totalTravelTime));
+			printer.printRecord("\"median travel time [s] on all links\"", f.format(medianStats.totalTravelTime));
+			printer.printRecord("\"mean travel dist [m] on all links\"", f.format(meanStats.totalTravelDist));
+			printer.printRecord("\"median travel dist [m] on all links\"", f.format(medianStats.totalTravelDist));
+			printer.printRecord("\"mean travel speed [m/s] on all links\"", f.format(meanStats.totalAvgSpeed));
+			printer.printRecord("\"median travel speed [m/s] on all links\"", f.format(medianStats.totalAvgSpeed));
+		}
+
+		createDashboard();
+
 		return 0;
+	}
+
+	private void createDashboard() throws IOException {
+		SimWrapper sw = SimWrapper.create();
+
+		sw.addDashboard(new LaneRepurposingDashboard(output));
+
+//		the added dashboard will overwrite an existing one, so the following workaround is done
+//		this only generates the dashboard. If the dashboard includes analysis (like the standard dashboards), SimWrapper.run has to be executed additionally
+		sw.generate(Path.of(runDir + "/dashboard"));
+
+		String pattern = "*dashboard-*";
+		PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
+
+		try (Stream<Path> fileStream = Files.walk(runDir)) {
+			// Glob files in the directory matching the pattern
+			List<Path> matchedFiles = fileStream
+				.filter(Files::isRegularFile)
+				.filter(path -> matcher.matches(path.getFileName()))
+				.toList();
+
+			int i = 0;
+			for (Path p : matchedFiles) {
+				int n = Integer.parseInt(p.getFileName().toString().substring(10, 11));
+				if (n > i) {
+					i = n;
+				}
+			}
+
+			String newFileName = globFile(runDir, "*dashboard-" + i +"*").getFileName().toString().replace(String.valueOf(i), String.valueOf(i + 1));
+
+			Files.copy(Path.of(runDir + "/dashboard/dashboard-0.yaml"), Path.of(runDir + "/" + newFileName));
+
+			try (Stream<Path> anotherStream = Files.walk(Path.of(runDir + "/dashboard"))){
+				anotherStream
+					.sorted((p1, p2) -> -p1.compareTo(p2))
+					.forEach(path -> {
+						try {
+							Files.delete(path);
+						} catch (IOException e) {
+							throw new RuntimeException(e);
+						}
+					});
+			} catch (IOException f) {
+				throw new RuntimeException(f);
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	private Double getMedian(List<Double> values) {
+
+		Collections.sort(values);
+
+		int length = values.size();
+		// Check if the length of the array is odd or even
+		if (length % 2 != 0) {
+			// If odd, return the middle element
+			return values.get(length / 2);
+		} else {
+			// If even, return the average of the two middle elements
+			int midIndex1 = length / 2 - 1;
+			int midIndex2 = length / 2;
+			return (values.get(midIndex1) + values.get(midIndex2)) / 2.0;
+		}
 	}
 
 	@Override

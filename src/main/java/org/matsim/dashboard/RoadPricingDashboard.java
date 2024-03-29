@@ -15,7 +15,9 @@ import java.util.List;
 public class RoadPricingDashboard implements Dashboard {
 	String share = "share";
 
-	public RoadPricingDashboard() {}
+	public RoadPricingDashboard() {
+//		no params needed
+	}
 	@Override
 	public void configure(Header header, Layout layout) {
 		header.title = "Road Pricing";
