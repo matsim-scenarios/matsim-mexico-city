@@ -18,7 +18,7 @@
  *                                                                         *
  * *********************************************************************** */
 
-package org.matsim.run;
+package org.matsim.run.MexicoCityRoadPricing;
 
 import jakarta.inject.Inject;
 import org.apache.logging.log4j.LogManager;

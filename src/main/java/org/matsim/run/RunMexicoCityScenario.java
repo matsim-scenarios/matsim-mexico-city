@@ -38,6 +38,7 @@ import org.matsim.prepare.network.PrepareNetwork;
 import org.matsim.prepare.opt.RunCountOptimization;
 import org.matsim.prepare.opt.SelectPlansFromIndex;
 import org.matsim.prepare.population.*;
+import org.matsim.run.MexicoCityRoadPricing.MexicoCityRoadPricingModule;
 import org.matsim.simwrapper.SimWrapperConfigGroup;
 import org.matsim.simwrapper.SimWrapperModule;
 import org.matsim.vehicles.VehicleType;
@@ -299,17 +300,16 @@ public class RunMexicoCityScenario extends MATSimApplication {
 				}
 
 				if (MexicoCityUtils.isDefined(RoadPricingOptions.roadPricingAreaPath)) {
-					install(new RoadPricingModule());
-
 //					use own RoadPricingControlerListener, which throws person money events by multiplying the toll (factor) by the agent's income
 					if (RoadPricingOptions.roadPricingType.equals(RoadPricingOptions.RoadPricingType.RELATIVE_TO_INCOME)) {
 						if (!MexicoCityUtils.isDefined(incomeAreaPath)) {
 							log.error("Path to shp file for income assignment is not given. Simulation will fail without income attributes. Please define the path to the shp as run param.");
 							throw new NoSuchElementException();
 						}
-						addControlerListenerBinding().to(MexicoCityRoadPricingControlerListener.class);
+						install(new MexicoCityRoadPricingModule());
 						log.warn("Running road pricing scenario with a toll value of {}. Make sure, that this is a relative value.", RoadPricingOptions.toll);
 					} else {
+						install(new RoadPricingModule());
 						log.warn("Running road pricing scenario with a toll value of {}. Make sure, that this is an absolute value.", RoadPricingOptions.toll);
 					}
 				}

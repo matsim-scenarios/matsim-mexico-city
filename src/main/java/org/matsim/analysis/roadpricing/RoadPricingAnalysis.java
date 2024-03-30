@@ -204,6 +204,7 @@ public class RoadPricingAnalysis implements MATSimAppCommand {
 		aggr.sortOn(this.share);
 
 		List<String> incomeDistr = new ArrayList<>();
+		incomeDistr.add("incomeGroup,Count [person],share");
 
 		for (String k : labels.keySet()) {
 			for (int i = 0; i < aggr.rowCount() - 1; i++) {
