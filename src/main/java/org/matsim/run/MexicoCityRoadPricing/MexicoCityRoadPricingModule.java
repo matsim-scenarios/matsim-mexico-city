@@ -30,6 +30,8 @@ public final class MexicoCityRoadPricingModule extends AbstractModule {
 	public void install() {
 		ConfigUtils.addOrGetModule(getConfig(), RoadPricingConfigGroup.class);
 
+		log.warn("Installing scenario specific module {}. Make sure, this is what you want!", MexicoCityRoadPricingModule.class.getName());
+
 		// TODO sort out different ways to set toll schemes; reduce automagic
 		// TODO JWJ: is this still too "automagic"?
 		if ( scheme != null) {

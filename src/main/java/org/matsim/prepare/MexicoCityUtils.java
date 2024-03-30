@@ -8,6 +8,8 @@ import org.matsim.api.core.v01.population.Person;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -86,6 +88,26 @@ public final class MexicoCityUtils {
 	 */
 	public static Coord roundCoord(Coord coord) {
 		return new Coord(roundNumber(coord.getX()), roundNumber(coord.getY()));
+	}
+
+	/**
+	 * helper method to calc a median of a list of doubles.
+	 */
+	public static Double calcMedian(List<Double> values) {
+
+		Collections.sort(values);
+
+		int length = values.size();
+		// Check if the length of the array is odd or even
+		if (length % 2 != 0) {
+			// If odd, return the middle element
+			return values.get(length / 2);
+		} else {
+			// If even, return the average of the two middle elements
+			int midIndex1 = length / 2 - 1;
+			int midIndex2 = length / 2;
+			return (values.get(midIndex1) + values.get(midIndex2)) / 2.0;
+		}
 	}
 
 

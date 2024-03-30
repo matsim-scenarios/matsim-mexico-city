@@ -8,6 +8,7 @@ import org.matsim.analysis.CheckPtNetwork;
 import org.matsim.analysis.MexicoCityMainModeIdentifier;
 import org.matsim.analysis.ModeChoiceCoverageControlerListener;
 import org.matsim.analysis.personMoney.PersonMoneyEventsAnalysisModule;
+import org.matsim.analysis.roadpricing.RoadPricingAnalysis;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.TransportMode;
@@ -61,7 +62,7 @@ import java.util.*;
 	SelectPlansFromIndex.class, SplitActivityTypesDuration.class, XYToLinks.class
 })
 @MATSimApplication.Analysis({
-		LinkStats.class, CheckPopulation.class, CheckPtNetwork.class
+		LinkStats.class, CheckPopulation.class, CheckPtNetwork.class, RoadPricingAnalysis.class
 })
 
 public class RunMexicoCityScenario extends MATSimApplication {

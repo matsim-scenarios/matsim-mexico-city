@@ -30,14 +30,16 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.*;
 
-import static tech.tablesaw.aggregate.AggregateFunctions.count;
+import static tech.tablesaw.aggregate.AggregateFunctions.*;
 
 @CommandLine.Command(name = "roadPricing", description = "Calculates various road pricing related metrics.")
 @CommandSpec(
 	requires = {"personMoneyEvents.tsv", "persons.csv", "config.xml"},
-	produces = {"roadPricing_income_groups.csv", "roadPricing_tolled_agents.csv", "roadPricing_daytime_groups.csv", "roadPricing_tolled_agents_home_locations.csv", "roadPricing_area.shp"}
+	produces = {"roadPricing_income_groups.csv", "roadPricing_avg_toll_income_groups.csv", "roadPricing_tolled_agents.csv", "roadPricing_daytime_groups.csv", "roadPricing_tolled_agents_home_locations.csv", "roadPricing_area.shp"}
 )
 public class RoadPricingAnalysis implements MATSimAppCommand {
 
@@ -58,6 +60,7 @@ public class RoadPricingAnalysis implements MATSimAppCommand {
 	String share = "share";
 	String person = "person";
 	String incomeGroup = "incomeGroup";
+	String amount = "amount";
 
 	public static void main(String[] args) {
 		new RoadPricingAnalysis().execute(args);
@@ -75,7 +78,7 @@ public class RoadPricingAnalysis implements MATSimAppCommand {
 			.separator(csv.detectDelimiter(input.getPath("persons.csv"))).build());
 
 		Table moneyEvents = Table.read().csv(CsvReadOptions.builder(IOUtils.getBufferedReader(input.getPath("personMoneyEvents.tsv")))
-			.columnTypesPartial(Map.of(person, ColumnType.TEXT, "time", ColumnType.DOUBLE, "purpose", ColumnType.TEXT, "amount", ColumnType.DOUBLE))
+			.columnTypesPartial(Map.of(person, ColumnType.TEXT, "time", ColumnType.DOUBLE, "purpose", ColumnType.TEXT, amount, ColumnType.DOUBLE))
 			.sample(false)
 			.separator(csv.detectDelimiter(input.getPath("personMoneyEvents.tsv"))).build());
 
@@ -83,17 +86,23 @@ public class RoadPricingAnalysis implements MATSimAppCommand {
 		IntList idx = new IntArrayList();
 		for (int i = 0; i < moneyEvents.rowCount(); i++) {
 			Row row = moneyEvents.row(i);
-			if (row.getString("purpose").contains("toll")) {
+			if (row.getString("purpose").toLowerCase().contains("toll")) {
 				idx.add(i);
 			}
 		}
 		Table filtered = moneyEvents.where(Selection.with(idx.toIntArray()));
 
-		double totalToll = (double) filtered.summarize("amount", AggregateFunctions.sum).apply().column("Sum [amount]").get(0);
+		double totalToll = (double) filtered.summarize(amount, AggregateFunctions.sum).apply().column("Sum [amount]").get(0);
+		double medianTollPaid = MexicoCityUtils.calcMedian(filtered.doubleColumn(amount).asList());
+		double meanTollPaid = totalToll / filtered.rowCount();
+
+		DecimalFormat f = new DecimalFormat("0.00", new DecimalFormatSymbols(Locale.ENGLISH));
 
 		try (CSVPrinter printer = new CSVPrinter(new FileWriter(output.getPath("roadPricing_tolled_agents.csv").toString()), CSVFormat.DEFAULT)) {
-			printer.printRecord("total toll paid [MXN]", totalToll, "paid_FILL1_wght400_GRAD0_opsz48.png", "https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/roadPricing/");
-			printer.printRecord("number of tolled agents", filtered.rowCount(), "tag_FILL1_wght400_GRAD0_opsz48.png", "https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/roadPricing/");
+			printer.printRecord("\"total toll paid [MXN]\"", f.format(totalToll));
+			printer.printRecord("\"number of tolled agents\"", filtered.rowCount());
+			printer.printRecord("\"mean toll paid [MXN]\"", f.format(meanTollPaid));
+			printer.printRecord("\"median toll paid [MXN]\"", f.format(medianTollPaid));
 		}
 
 		Table joined = new DataFrameJoiner(moneyEvents, person).inner(persons);
@@ -198,25 +207,31 @@ public class RoadPricingAnalysis implements MATSimAppCommand {
 
 		Table aggr = joined.summarize(person, count).by(incomeGroup);
 
-//		how to sort rows here? this does not work! Using workaround instead. -sme0324
+		aggr = new DataFrameJoiner(new DataFrameJoiner(aggr, incomeGroup)
+			.inner(joined.summarize(amount, mean).by(incomeGroup)), incomeGroup)
+			.inner(joined.summarize(amount, median).by(incomeGroup));
+
+//		how to sort rows here? agg.sortOn does not work! Using workaround instead. -sme0324
 		DoubleColumn shareCol = aggr.numberColumn(1).divide(aggr.numberColumn(1).sum()).setName(this.share);
 		aggr.addColumns(shareCol);
 		aggr.sortOn(this.share);
 
 		List<String> incomeDistr = new ArrayList<>();
-		incomeDistr.add("incomeGroup,Count [person],share");
+		List<String> avgTolls = new ArrayList<>();
 
 		for (String k : labels.keySet()) {
 			for (int i = 0; i < aggr.rowCount() - 1; i++) {
 				Row row = aggr.row(i);
 				if (row.getString(incomeGroup).equals(k)) {
 					incomeDistr.add(k + "," + row.getDouble("Count [person]") + "," + row.getDouble("share"));
+					avgTolls.add(k + "," + Math.abs(row.getDouble("Mean [amount]")) + "," + Math.abs(row.getDouble("Median [amount]")));
 					break;
 				}
 			}
 		}
 
 		incomeDistr.sort(Comparator.comparingInt(RoadPricingAnalysis::getLowerBound));
+		avgTolls.sort(Comparator.comparingInt(RoadPricingAnalysis::getLowerBound));
 
 		CSVFormat format = CSVFormat.DEFAULT.builder()
 			.setQuote(null)
@@ -225,8 +240,20 @@ public class RoadPricingAnalysis implements MATSimAppCommand {
 			.build();
 
 
+//		print income distr
 		try (CSVPrinter printer = new CSVPrinter(new FileWriter(output.getPath("roadPricing_income_groups.csv").toString()), format)) {
+			printer.printRecord("incomeGroup,Count [person],share");
 			for (String s : incomeDistr) {
+				printer.printRecord(s);
+			}
+		} catch (IOException e) {
+			throw new IllegalArgumentException();
+		}
+
+//		print avg toll paid per income group
+		try (CSVPrinter printer = new CSVPrinter(new FileWriter(output.getPath("roadPricing_avg_toll_income_groups.csv").toString()), format)) {
+			printer.printRecord("incomeGroup,Mean [amount],Median [amount]");
+			for (String s : avgTolls) {
 				printer.printRecord(s);
 			}
 		} catch (IOException e) {

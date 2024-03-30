@@ -69,5 +69,22 @@ public class RoadPricingDashboard implements Dashboard {
 				viz.width = 2.0;
 				viz.setShape(data.compute(RoadPricingAnalysis.class, "roadPricing_area.shp"), "id");
 			});
+
+		layout.row("fourth")
+			.el(Bar.class, (viz, data) -> {
+				viz.title = "Paid toll per income group";
+				viz.description = "mean and median values";
+				viz.stacked = false;
+				viz.dataset = data.compute(RoadPricingAnalysis.class, "roadPricing_avg_toll_income_groups.csv");
+				viz.x = "incomeGroup";
+				viz.xAxisName = "income group";
+				viz.yAxisName = "Toll paid [MXN]";
+				viz.columns = List.of("Mean [amount]","Median [amount]");
+			});
+	}
+
+	@Override
+	public double priority() {
+		return -2;
 	}
 }
