@@ -79,7 +79,7 @@ public class RoadPricingDashboard implements Dashboard {
 				viz.x = "incomeGroup";
 				viz.xAxisName = "income group";
 				viz.yAxisName = "Toll paid [MXN]";
-				viz.columns = List.of("Mean [amount]","Median [amount]");
+				viz.columns = List.of("Mean [amount]", "Median [amount]");
 			});
 	}
 
