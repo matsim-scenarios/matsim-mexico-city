@@ -39,7 +39,7 @@ import java.util.*;
 import static tech.tablesaw.aggregate.AggregateFunctions.count;
 
 /**
- * class copied and enhanced from matsim-libs org.matsim.application.analysis.population.TripAnalysis
+ * class copied and enhanced from matsim-libs org.matsim.application.analysis.population.TripAnalysis.
  */
 @CommandLine.Command(name = "trips", description = "Calculates various trip related metrics.")
 @CommandSpec(
