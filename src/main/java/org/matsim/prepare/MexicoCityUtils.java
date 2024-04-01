@@ -4,11 +4,21 @@ import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.population.Person;
+import org.matsim.simwrapper.Dashboard;
+import org.matsim.simwrapper.SimWrapper;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Stream;
+
+import static org.matsim.application.ApplicationUtils.globFile;
 
 /**
  * Scenario related utils class.
@@ -86,6 +96,60 @@ public final class MexicoCityUtils {
 	 */
 	public static Coord roundCoord(Coord coord) {
 		return new Coord(roundNumber(coord.getX()), roundNumber(coord.getY()));
+	}
+
+	public static void addDashboardToExistingRunOutput(Dashboard dashboard, Path runDir) throws IOException {
+		SimWrapper sw = SimWrapper.create();
+
+		sw.addDashboard(dashboard);
+
+//		the added dashboard will overwrite an existing one, so the following workaround is done
+//		this only generates the dashboard. If the dashboard includes analysis (like the standard dashboards), SimWrapper.run has to be executed additionally
+		sw.generate(Path.of(runDir + "/dashboard"));
+
+		String pattern = "*dashboard-*";
+		PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
+		String newFileName;
+
+		try (Stream<Path> fileStream = Files.walk(runDir, 1)) {
+			// Glob files in the directory matching the pattern
+			List<Path> matchedFiles = fileStream
+				.filter(Files::isRegularFile)
+				.filter(path -> matcher.matches(path.getFileName()))
+				.toList();
+
+			int i = 0;
+			for (Path p : matchedFiles) {
+				int n = Integer.parseInt(p.getFileName().toString().substring(10, 11));
+				if (n > i) {
+					i = n;
+				}
+			}
+
+			if (matchedFiles.isEmpty()) {
+				newFileName = "dashboard-0.yaml";
+			} else {
+				newFileName = globFile(runDir, "*dashboard-" + i +"*").getFileName().toString().replace(String.valueOf(i), String.valueOf(i + 1));
+			}
+
+			Files.copy(Path.of(runDir + "/dashboard/dashboard-0.yaml"), Path.of(runDir + "/" + newFileName));
+
+			try (Stream<Path> anotherStream = Files.walk(Path.of(runDir + "/dashboard"))){
+				anotherStream
+					.sorted((p1, p2) -> -p1.compareTo(p2))
+					.forEach(path -> {
+						try {
+							Files.delete(path);
+						} catch (IOException e) {
+							throw new RuntimeException(e);
+						}
+					});
+			} catch (IOException f) {
+				throw new RuntimeException(f);
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 

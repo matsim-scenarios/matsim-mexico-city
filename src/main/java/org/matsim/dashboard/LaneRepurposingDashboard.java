@@ -35,7 +35,6 @@ public class LaneRepurposingDashboard implements Dashboard {
 				viz.title = "Modal Shift Sankey Diagram";
 				viz.description = "Base case => Lane Repurposing policy case";
 				viz.csv = analysisDir + "modalShift.csv";
-				viz.height = 2.;
 			});
 
 		layout.row("third")
@@ -51,5 +50,10 @@ public class LaneRepurposingDashboard implements Dashboard {
 				viz.dataset = analysisDir + bikeCsv;
 				viz.showAllRows = false;
 			});
+	}
+
+	@Override
+	public double priority() {
+		return -3;
 	}
 }

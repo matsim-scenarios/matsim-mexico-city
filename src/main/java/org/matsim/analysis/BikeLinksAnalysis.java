@@ -21,21 +21,16 @@ import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.events.EventsUtils;
 import org.matsim.core.network.NetworkUtils;
 import org.matsim.dashboard.LaneRepurposingDashboard;
-import org.matsim.simwrapper.SimWrapper;
+import org.matsim.prepare.MexicoCityUtils;
 import org.matsim.vehicles.Vehicle;
 import picocli.CommandLine;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.PathMatcher;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.*;
-import java.util.stream.Stream;
 
 import static org.matsim.application.ApplicationUtils.globFile;
 
@@ -181,58 +176,9 @@ public class BikeLinksAnalysis implements MATSimAppCommand, LinkEnterEventHandle
 			printer.printRecord("\"median travel speed [m/s] on all links\"", f.format(medianStats.totalAvgSpeed));
 		}
 
-		createDashboard();
+		MexicoCityUtils.addDashboardToExistingRunOutput(new LaneRepurposingDashboard(output), runDir);
 
 		return 0;
-	}
-
-	private void createDashboard() throws IOException {
-		SimWrapper sw = SimWrapper.create();
-
-		sw.addDashboard(new LaneRepurposingDashboard(output));
-
-//		the added dashboard will overwrite an existing one, so the following workaround is done
-//		this only generates the dashboard. If the dashboard includes analysis (like the standard dashboards), SimWrapper.run has to be executed additionally
-		sw.generate(Path.of(runDir + "/dashboard"));
-
-		String pattern = "*dashboard-*";
-		PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
-
-		try (Stream<Path> fileStream = Files.walk(runDir)) {
-			// Glob files in the directory matching the pattern
-			List<Path> matchedFiles = fileStream
-				.filter(Files::isRegularFile)
-				.filter(path -> matcher.matches(path.getFileName()))
-				.toList();
-
-			int i = 0;
-			for (Path p : matchedFiles) {
-				int n = Integer.parseInt(p.getFileName().toString().substring(10, 11));
-				if (n > i) {
-					i = n;
-				}
-			}
-
-			String newFileName = globFile(runDir, "*dashboard-" + i +"*").getFileName().toString().replace(String.valueOf(i), String.valueOf(i + 1));
-
-			Files.copy(Path.of(runDir + "/dashboard/dashboard-0.yaml"), Path.of(runDir + "/" + newFileName));
-
-			try (Stream<Path> anotherStream = Files.walk(Path.of(runDir + "/dashboard"))){
-				anotherStream
-					.sorted((p1, p2) -> -p1.compareTo(p2))
-					.forEach(path -> {
-						try {
-							Files.delete(path);
-						} catch (IOException e) {
-							throw new RuntimeException(e);
-						}
-					});
-			} catch (IOException f) {
-				throw new RuntimeException(f);
-			}
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
 	}
 
 	private Double getMedian(List<Double> values) {
