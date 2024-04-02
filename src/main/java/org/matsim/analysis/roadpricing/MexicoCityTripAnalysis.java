@@ -36,6 +36,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
+import static org.matsim.application.ApplicationUtils.globFile;
 import static tech.tablesaw.aggregate.AggregateFunctions.count;
 
 /**
@@ -43,7 +44,7 @@ import static tech.tablesaw.aggregate.AggregateFunctions.count;
  */
 @CommandLine.Command(name = "trips", description = "Calculates various trip related metrics.")
 @CommandSpec(
-	requires = {"trips.csv", "persons.csv"},
+	requires = {"path"},
 	produces = {"mode_share.csv", "mode_share_per_dist.csv", "mode_users.csv", "trip_stats.csv", "population_trip_stats.csv", "trip_purposes_by_hour.csv"}
 )
 public class MexicoCityTripAnalysis implements MATSimAppCommand {
@@ -97,10 +98,13 @@ public class MexicoCityTripAnalysis implements MATSimAppCommand {
 	@Override
 	public Integer call() throws Exception {
 
-		Table persons = Table.read().csv(CsvReadOptions.builder(IOUtils.getBufferedReader(input.getPath("persons.csv")))
+		String tripsPath = globFile(Path.of(input.getPath()), "*output_trips.*").toString();
+		String personsPath = globFile(Path.of(input.getPath()), "*output_persons.*").toString();
+
+		Table persons = Table.read().csv(CsvReadOptions.builder(IOUtils.getBufferedReader(personsPath))
 			.columnTypesPartial(Map.of("person", ColumnType.TEXT))
 			.sample(false)
-			.separator(new CsvOptions().detectDelimiter(input.getPath("persons.csv"))).build());
+			.separator(new CsvOptions().detectDelimiter(personsPath)).build());
 
 		int total = persons.rowCount();
 
@@ -138,10 +142,10 @@ public class MexicoCityTripAnalysis implements MATSimAppCommand {
 		// Map.of only has 10 argument max
 		columnTypes.put("traveled_distance", ColumnType.LONG);
 
-		Table trips = Table.read().csv(CsvReadOptions.builder(IOUtils.getBufferedReader(input.getPath("trips.csv")))
+		Table trips = Table.read().csv(CsvReadOptions.builder(IOUtils.getBufferedReader(tripsPath))
 			.columnTypesPartial(columnTypes)
 			.sample(false)
-			.separator(CsvOptions.detectDelimiter(input.getPath("trips.csv"))).build());
+			.separator(CsvOptions.detectDelimiter(tripsPath)).build());
 
 		// Trip filter with start AND end
 		if (shp.isDefined() && filter == LocationFilter.TRIP_START_AND_END) {
@@ -209,9 +213,8 @@ public class MexicoCityTripAnalysis implements MATSimAppCommand {
 
 		writeTripPurposes(joined);
 
-//		TODO check if the paths work here
 		String analysisDir = output.getPath().toString().substring(0, output.getPath().toString().lastIndexOf("\\"));
-		Path runDir = Path.of(input.getPath().substring(0, input.getPath().lastIndexOf("\\")));
+		Path runDir = Path.of(input.getPath());
 
 		if (Path.of(analysisDir).isAbsolute()) {
 			analysisDir = runDir.relativize(Path.of(analysisDir)).toString();
