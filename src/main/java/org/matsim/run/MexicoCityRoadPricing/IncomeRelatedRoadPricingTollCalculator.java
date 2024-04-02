@@ -18,7 +18,7 @@
  *                                                                         *
  * *********************************************************************** */
 
-package org.matsim.run;
+package org.matsim.run.MexicoCityRoadPricing;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
