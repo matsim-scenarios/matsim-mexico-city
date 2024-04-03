@@ -213,7 +213,14 @@ public class MexicoCityTripAnalysis implements MATSimAppCommand {
 
 		writeTripPurposes(joined);
 
-		String analysisDir = output.getPath().toString().substring(0, output.getPath().toString().lastIndexOf("\\"));
+		String analysisDir = "";
+
+		if (output.getPath().toString().contains("\\")) {
+			analysisDir = output.getPath().toString().substring(0, output.getPath().toString().lastIndexOf("\\"));
+		} else if (output.getPath().toString().contains("/")) {
+			analysisDir = output.getPath().toString().substring(0, output.getPath().toString().lastIndexOf("/"));
+		}
+
 		Path runDir = Path.of(input.getPath());
 
 		if (Path.of(analysisDir).isAbsolute()) {
