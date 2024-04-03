@@ -3,9 +3,23 @@ library(matsim)
 library(ggalluvial)
 library(ggplot2)
 library(sf)
+library(optparse)
 
-setwd("Y:/net/ils/matsim-mexico-city/case-studies/roadPricing-meta-2050/output/output-mexico-city-v1.0-1pct-roadPricing-meta-2050-fare52")
-# setwd("C:/Users/Simon/Desktop/wd/2024-03-25/roadPricingAnalysisTest")
+option_list <- list(
+  make_option(c("-d", "--runDir"), type="character", default=NULL,
+              help="Path of run directory. Avoid using '/', use '/' instead", metavar="character"))
+
+opt_parser <- OptionParser(option_list=option_list)
+opt <- parse_args(opt_parser)
+
+# if you want to run code without run args -> comment out the following if condition + setwd() manually
+if (is.null(opt$runDir)){
+  print_help(opt_parser)
+  stop("At least 1 argument must be supplied. Use -h for help.", call.=FALSE)
+}
+
+setwd(opt$runDir)
+# setwd("C:/Users/Simon/Desktop/wd/2024-04-01/modalShiftAnalysis/roadPricing-avenidas-principales/output/relative-income-fare0.001")
 analysisDir <- "analysis/roadpricing"
 
 crs <- "EPSG:4485"
@@ -83,5 +97,5 @@ trips_base <- merge(trips_base, points_start[, c("trip_id", "start_within")], by
   filter(!is.na(start_within) | !is.na(end_within)) %>%
   select(-geometry.x, -geometry.y, -start_within, -end_within)
 
-plotModalShiftSankey(trips_base, trips_roadPricing, dump.output.to = getwd())
-write.csv(trips_roadPricing, file=paste0(getwd(), analysisDir, "/output_trips.roadPricing-area.csv.gz"), quote=FALSE)
+plotModalShiftSankey(trips_base, trips_roadPricing, dump.output.to = analysisDir)
+write.csv(trips_roadPricing, file=paste0(analysisDir, "/output_trips.roadPricing-area.csv.gz"), quote=FALSE)
