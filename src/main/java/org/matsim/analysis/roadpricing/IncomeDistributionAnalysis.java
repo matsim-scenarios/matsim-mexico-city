@@ -18,6 +18,9 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.*;
 
+/**
+ * analysis for determining the income distribution of agebs for a given road pricing area.
+ */
 public class IncomeDistributionAnalysis implements MATSimAppCommand {
 
 	@CommandLine.Option(names = "--income-shp", description = "Path to shp file with income information", required = true)
@@ -54,14 +57,10 @@ public class IncomeDistributionAnalysis implements MATSimAppCommand {
 
 		double inflationFactor = 1.6173;
 
-//		apply factor to calc 2017 income values for 2005 income values
-//		for (Map.Entry<String, DoubleRange> entry : incomeGroups.entrySet()) {
-//			incomeGroups.replace(entry.getKey(), new DoubleRange(entry.getValue().getMinimumDouble() * inflationFactor, entry.getValue().getMaximumDouble() * inflationFactor));
-//		}
-
 //		avg hh size 3.6 according to ENIGH 2018, see class PrepareIncome
 		int avgHHSize = 4;
 
+		//		apply factor to calc 2017 income values for 2005 income values
 		incomeGroups.forEach((key, value) -> incomeGroups.replace(key, new DoubleRange(value.getMinimumDouble() * inflationFactor / avgHHSize, value.getMaximumDouble() * inflationFactor / 4)));
 		incomeGroups.put("#N/A", new DoubleRange(0, 999999999));
 
