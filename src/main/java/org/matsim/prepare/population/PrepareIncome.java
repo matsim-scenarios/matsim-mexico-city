@@ -62,7 +62,7 @@ public class PrepareIncome implements MATSimAppCommand {
 	/**
 	 * puts values for income groups into a map.
 	 */
-	public static void prepareIncomeGroupsMap() {
+	public static void prepareIncomeGroupsMap(Map<String, DoubleRange> incomeGroups) {
 //		data from https://www.economia.com.mx/niveles_de_ingreso.htm / amai.org for 2005
 		incomeGroups.put("E", new DoubleRange(0., 2699.));
 		incomeGroups.put("D_me", new DoubleRange(2700., 6799.));
@@ -78,7 +78,7 @@ public class PrepareIncome implements MATSimAppCommand {
 	 */
 	public static void assignIncomeAttr(ShpOptions shp, Population population) {
 
-		prepareIncomeGroupsMap();
+		prepareIncomeGroupsMap(incomeGroups);
 
 //		shp file contains the avg familiar income group based on analysis of ITDP México
 		Map<Geometry, String> geometries = new HashMap<>();
