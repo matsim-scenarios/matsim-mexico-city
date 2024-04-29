@@ -57,3 +57,7 @@ It can be used by using either of these methods:
     1. For example, one can disable lanes or run the 10pct scenario using the available options
 5. Start this scenario using the default config by running `java -jar matsim-mexico-city-1.0.jar`
 6. "Open" the output directory.  You can drag files into VIA as was already done above.
+
+### Internal Documentation
+Internal documentation can be found here:
+https://docs.google.com/document/d/1MQHB30u0zm8IiBhKM3qcC0V67Tk_xiXxwGbFUGMQ2g0/edit
