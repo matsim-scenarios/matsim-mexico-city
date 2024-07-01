@@ -271,23 +271,17 @@ public final class MexicoCitySumoNetworkConverter implements Callable<Integer> {
 
 			MexicoCitySumoNetworkHandler.Type type = sumoHandler.types.get(edge.type);
 
-//            TODO: implement solution to only add bike if there is a lane for bikes. therefore, check if lane.allow has bike or lane.disallow doesnt have it
-//			may be easier to add bike here and afterwards delete it from set
-//			therefore link.setAllowedModes has to be called after for loop through lanes
-//			if not used -> BIKE ONLY LANES HAVE TO BE IGNORED IN THE BELOW FOR LOOP!!
-
-			if (type.allow.contains("bicycle") || (type.allow.isEmpty() && !type.disallow.contains("bicycle")))
-				modes.add(TransportMode.bike);
+//			bike will not be added as allowed mode here. This happens in a separate step, see Makefile. -sme0524
 
 			link.setAllowedModes(modes);
 			link.setLength(edge.getLength());
 			LanesToLinkAssignment l2l = lf.createLanesToLinkAssignment(link.getId());
 
 			for (MexicoCitySumoNetworkHandler.Lane lane : edge.lanes) {
-				if ((lane.allow.contains("bus") && lane.allow.size() == 1) || (lane.allow.contains("bicycle") && lane.allow.size() == 1)) {
-//					if only bus or bike is allowed on lane -> lane does not count as an accessible lane, pt is added as a separate network later -sme0324
-				link.setNumberOfLanes(link.getNumberOfLanes() - 1);
-				continue;
+				if ((lane.allow.contains("bus") && lane.allow.size() == 1)) {
+//					if only bus is allowed on lane -> lane does not count as an accessible lane, pt is added as a separate network later -sme0324
+					link.setNumberOfLanes(link.getNumberOfLanes() - 1);
+					continue;
 				}
 				Lane mLane = lf.createLane(Id.create(lane.id, Lane.class));
 				mLane.setAlignment(lane.index);
