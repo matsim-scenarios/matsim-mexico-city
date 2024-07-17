@@ -108,35 +108,40 @@ public class PrepareIncome implements MATSimAppCommand {
 
 			int hhSize = (int) p.getAttributes().getAttribute(MexicoCityUtils.HOUSEHOLD_SIZE);
 
-			Double income2017 = null;
+			if (PersonUtils.getIncome(p) == null) {
+				Double income2017 = null;
 
-			for (Map.Entry<Geometry, String> e : geometries.entrySet()) {
-				if (MGC.coord2Point(homeCoord).within(e.getKey())) {
+				for (Map.Entry<Geometry, String> e : geometries.entrySet()) {
+					if (MGC.coord2Point(homeCoord).within(e.getKey())) {
 //					the income groups are called amai because of the institution who calculated them (amai.org)
-					String group = e.getValue();
+						String group = e.getValue();
 
-					if (group.equals("#N/A")) {
+						if (group.equals("#N/A")) {
 //						if na -> random income
-						income2017 = rnd.nextDouble(0., 170001.) * 1.6173;
-						count++;
-					} else {
-						DoubleRange incomeRange = incomeGroups.get(group);
+							income2017 = rnd.nextDouble(0., 170001.) * 1.6173;
+							count++;
+						} else {
+							DoubleRange incomeRange = incomeGroups.get(group);
 
 //					values for income ranges are for 2005 -> value for 2017 = value2005  + value2005 * accumulated inflation2005-2017 (0.6173)
 //					https://www.dineroeneltiempo.com/inflacion/peso-mexicano?valor=1&ano1=2005&ano2=2017
-						income2017 = rnd.nextDouble(incomeRange.getMinimumDouble(), incomeRange.getMaximumDouble() + 1) * 1.6173;
+							income2017 = rnd.nextDouble(incomeRange.getMinimumDouble(), incomeRange.getMaximumDouble() + 1) * 1.6173;
+						}
+						break;
 					}
-					break;
 				}
-			}
 
-			if (income2017 == null) {
+				if (income2017 == null) {
 //					if homeLoc is not inside any of the shp areas -> assign randomly
-				income2017 = rnd.nextDouble(0., 170001.) * 1.6173;
-				count++;
+					income2017 = rnd.nextDouble(0., 170001.) * 1.6173;
+					count++;
+				}
+
+				PersonUtils.setIncome(p, income2017 / hhSize);
+
 			}
 
-			PersonUtils.setIncome(p, income2017 / hhSize);
+
 		}
 
 		log.info("For {} persons, no household size was assigned. The average household size of 4 persons (ENIGH2018) was assigned to them.", countNoHHSize);
