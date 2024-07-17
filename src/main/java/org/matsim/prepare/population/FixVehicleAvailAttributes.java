@@ -29,10 +29,10 @@ public class FixVehicleAvailAttributes implements MATSimAppCommand {
 		Population population = PopulationUtils.readPopulation(input.toString());
 
 		for (Person person : population.getPersons().values()) {
-			CAR_AVAIL carAvail = CAR_AVAIL.ALWAYS;
+			CarAvail carAvail = CarAvail.ALWAYS;
 
 			if (PersonUtils.getAge(person) < 18) {
-				carAvail = CAR_AVAIL.NEVER;
+				carAvail = CarAvail.NEVER;
 			}
 
 			PersonUtils.setCarAvail(person, carAvail.toString().toLowerCase());
@@ -47,7 +47,7 @@ public class FixVehicleAvailAttributes implements MATSimAppCommand {
 		return 0;
 	}
 
-	private enum CAR_AVAIL {
+	private enum CarAvail {
 		ALWAYS,
 		NEVER
 	}
