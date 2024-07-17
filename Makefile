@@ -234,6 +234,10 @@ input/v1.0/mexico-city-v1.0-1pct.input.plans.xml.gz: input/v1.0/mexico-city-init
 		--output $@\
 		--all-plans\
 		--coord-dist 100
+	# for SMC all agents > 18 (age) should have carAvail = always
+	$(sc) --income-area "" prepare fix-vehicle-availabilities\
+		--input $@\
+		--output $@
 
 # commented out due to bug when reading plans / activities with assigned facilityIds, see matsim-libs PR3106
 #	$(sc) --income-area "" prepare xy-to-links\

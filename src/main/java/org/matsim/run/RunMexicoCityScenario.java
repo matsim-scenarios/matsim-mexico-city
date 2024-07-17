@@ -58,7 +58,7 @@ import java.util.*;
 	AdaptCountsScale.class, AdjustActivityToLinkDistances.class, ChangeFacilities.class, ChangeModeNames.class, CheckActivityFacilities.class, CheckCarAvailability.class, CleanNetwork.class, CorrectPtVehicleTypes.class,
 	CreateBikeNetworkFromShp.class, CreateCommuterRelations.class, CreateCountsFromDatosVialesPortal.class, CreateLandUseShp.class, CreateMATSimFacilities.class, CreateMetropolitanAreaPopulation.class,
 	CreateMexicoCityPopulation.class, CreateMexicoCityScenarioConfig.class, CreateMexicoCityNetworkFromSumo.class, CreateTransitScheduleFromGtfs.class, CreateVehicleTypes.class,
-	DownSamplePopulation.class, ExtractHomeCoordinates.class, FixSubtourModes.class, GenerateShortDistanceTrips.class, InitLocationChoice.class, MergePopulations.class,
+	DownSamplePopulation.class, ExtractHomeCoordinates.class, FixSubtourModes.class, FixVehicleAvailAttributes.class, GenerateShortDistanceTrips.class, InitLocationChoice.class, MergePopulations.class,
 	PrepareBikePopulation.class, PrepareIncome.class, PrepareNetwork.class, ResolveGridCoordinates.class, RunActivitySampling.class, RunCountOptimization.class,
 	SelectPlansFromIndex.class, SplitActivityTypesDuration.class, XYToLinks.class
 })
