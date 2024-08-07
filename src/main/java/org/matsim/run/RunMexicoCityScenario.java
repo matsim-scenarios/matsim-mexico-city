@@ -78,7 +78,7 @@ public class RunMexicoCityScenario extends MATSimApplication {
 	@CommandLine.Option(names = "--repurpose-lanes", defaultValue = "false", description = "Enables the simulation of a lane repurposing scenario (car -> bike): See class PrepareNetwork for details.")
 	private boolean repurposeLanes;
 
-	@CommandLine.Option(names = "--income-area", description = "Path to SHP file specifying income ranges. If provided, income dependent scoring will be used.", required = true)
+	@CommandLine.Option(names = "--income-area", description = "Path to SHP file specifying income ranges. If provided, income dependent scoring will be used.")
 	private Path incomeAreaPath;
 
 	@CommandLine.Option(names = "--random-seed", defaultValue = "4711", description = "setting random seed for the simulation. Can be used to compare several runs with the same config.")
@@ -222,7 +222,11 @@ public class RunMexicoCityScenario extends MATSimApplication {
 		}
 
 		if (MexicoCityUtils.isDefined(incomeAreaPath)) {
+			log.info("Person Income attributes will be assigned based on shp file {}.", incomeAreaPath);
 			PrepareIncome.assignIncomeAttr(new ShpOptions(incomeAreaPath, null, null), scenario.getPopulation());
+		} else {
+			log.warn("No income attributes shp file was defined. Please make sure every agent of your population already has an income attribute." +
+				"Due to the usage of income dependent scoring the simulation will fail if no income attributes are present.");
 		}
 
 		ChangeModeNames.changeNames(scenario.getPopulation());
@@ -304,10 +308,6 @@ public class RunMexicoCityScenario extends MATSimApplication {
 				if (MexicoCityUtils.isDefined(RoadPricingOptions.roadPricingAreaPath)) {
 //					use own RoadPricingControlerListener, which throws person money events by multiplying the toll (factor) by the agent's income
 					if (RoadPricingOptions.roadPricingType.equals(RoadPricingOptions.RoadPricingType.RELATIVE_TO_INCOME)) {
-						if (!MexicoCityUtils.isDefined(incomeAreaPath)) {
-							log.error("Path to shp file for income assignment is not given. Simulation will fail without income attributes. Please define the path to the shp as run param.");
-							throw new NoSuchElementException();
-						}
 						install(new MexicoCityRoadPricingModule());
 						log.warn("Running road pricing scenario with a toll value of {}. Make sure, that this is a relative value.", RoadPricingOptions.toll);
 					} else {
