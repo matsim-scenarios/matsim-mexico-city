@@ -31,7 +31,7 @@ city = gpd.read_file("/net/ils/matsim-mexico-city/input/v1.0/cityArea/cityArea_c
 def f(persons):
     persons = gpd.GeoDataFrame(persons, geometry=gpd.points_from_xy(persons.home_x, persons.home_y))
 
-    df = gpd.sjoin(persons.set_crs("EPSG:4485"), city, how="inner", op="intersects")
+    df = gpd.sjoin(persons.set_crs("EPSG:4485"), city, how="inner", predicate="intersects")
 
     print("Filtered %s persons" % len(df))
 

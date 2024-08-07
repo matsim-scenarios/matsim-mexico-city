@@ -85,45 +85,47 @@ input/sumo.net.xml: input/network.osm
 	 --osm.lane-access true\
 	 --proj "+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"\
 
-input/first-network.xml.gz: input/sumo.net.xml
+input/first-network.xml.gz: input/sumo.net.xml ..\..\public-svn\matsim\scenarios\countries\mx\mexico-city\mexico-city-v1.0\input\data-scenario-generation\cycleways_semovi\ciclovias_cdmx_buffer_utm12n.shp
 
-	$(sc) prepare network-from-sumo-mexico-city $< --target-crs $(CRS) --output $@
+	$(sc) --income-area "" prepare network-from-sumo-mexico-city $< --target-crs $(CRS) --output $@
 
-	$(sc) prepare clean-network $@ --output $@ --modes car,ride,bike
+	$(sc) --income-area "" prepare bike-network-from-shp --network $@ --output $@ --shp $(word 2,$^)
+
+	$(sc) --income-area "" prepare clean-network $@ --output $@ --modes car,ride,bike
 
 
 input/first-network-with-pt.xml.gz: input/first-network.xml.gz
-	$(sc) prepare transit-from-gtfs --network $<\
+	$(sc) --income-area "" prepare transit-from-gtfs --network $<\
 	 --output=input/\
 	 --name $N-$V --date "2023-03-07" --target-crs $(CRS) \
 	 ../../public-svn/matsim/scenarios/countries/mx/$N/$N-$V/input/data-scenario-generation/gtfs_semovi_2024-02-22.zip
 
 input/mexico-city-v1.0-transitVehicles_corrected.xml.gz: input/mexico-city-v1.0-transitVehicles.xml.gz
-	 $(sc) prepare correct-pt-vehicle-types\
+	 $(sc) --income-area "" prepare correct-pt-vehicle-types\
 	  --vehicles $<
 
 
 ############################################ 2) POPULATION CREATION ###########################################################
 
 input/first-population-cdmx-only-1pct-homeLocOnly.plans.xml.gz: ..\..\public-svn\matsim\scenarios\countries\mx\mexico-city\mexico-city-v1.0\input\data-scenario-generation/manzanas_censo2020\manzanas_censo2020_utm12n.shp
-	$(sc) prepare mexico-city-population\
+	$(sc) --income-area "" prepare mexico-city-population\
 		--shp $<\
 		--output $@
 
 input/first-population-zmvm-without-cdmx-1pct-homeLocOnly.plans.xml.gz: ..\..\public-svn\matsim\scenarios\countries\mx\mexico-city\mexico-city-v1.0\input\data-scenario-generation/zmvm_2010\zmvm_2010_utm12n.shp
-	$(sc) prepare zmvm-population\
+	$(sc) --income-area "" prepare zmvm-population\
 		--input ..\..\public-svn\matsim\scenarios\countries\mx\mexico-city\mexico-city-v1.0\input\data-scenario-generation/iter_13_cpv2020\conjunto_de_datos\conjunto_de_datos_iter_13CSV20.csv,..\..\public-svn\matsim\scenarios\countries\mx\mexico-city\mexico-city-v1.0\input\data-scenario-generation/iter_15_cpv2020\conjunto_de_datos\conjunto_de_datos_iter_15CSV20.csv\
 		--shp $<\
 		--output $@
 
 input/mexico-city-static-1pct.plans.xml.gz: input/first-population-cdmx-only-1pct-homeLocOnly.plans.xml.gz input/first-population-zmvm-without-cdmx-1pct-homeLocOnly.plans.xml.gz
-	$(sc) prepare merge-populations $^\
+	$(sc) --income-area "" prepare merge-populations $^\
 	 --output $@
 
 # the activites and persons table for this class are created by sampling survey data.
 # this is done via matsim-python-tools: https://github.com/matsim-vsp/matsim-python-tools/blob/mexico-city/matsim/scenariogen/data/run_extract_activities.py
 input/mexico-city-activities-1pct.plans.xml.gz: input/mexico-city-static-1pct.plans.xml.gz
-	$(sc) prepare activity-sampling --input $<\
+	$(sc) --income-area "" prepare activity-sampling --input $<\
 		--output $@\
 		--persons input/table-persons.csv.gz\
   		--activities input/table-activities.csv.gz\
@@ -131,13 +133,13 @@ input/mexico-city-activities-1pct.plans.xml.gz: input/mexico-city-static-1pct.pl
   		--shp ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/data-scenario-generation/distritos_eod2017_unam/DistritosEODHogaresZMVM2017_utm12n.shp
 
 input/v1.0/mexico-city-v1.0-facilities.xml.gz: input/v1.0/mexico-city-v1.0-network.xml.gz ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/data-scenario-generation/economy_locations_zmvm_2017/economy_locations_zmvm_2017_utm12n.shp
-	$(sc) prepare facilities\
+	$(sc) --income-area "" prepare facilities\
 		--network $<\
 		--shp $(word 2,$^)\
 		--output $@
 
 input/commuter.csv: ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/data-scenario-generation/data-input-eod2017-bundled/tviaje.csv
-	$(sc) prepare create-commute-relations\
+	$(sc) --income-area "" prepare create-commute-relations\
 		--od-survey $<\
 		--zmvm-shp ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/data-scenario-generation/zmvm_2010/zmvm_2010_utm12n.shp\
 		--survey-shp ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/data-scenario-generation/distritos_eod2017_unam/DistritosEODHogaresZMVM2017_utm12n.shp\
@@ -145,7 +147,7 @@ input/commuter.csv: ../../public-svn/matsim/scenarios/countries/mx/mexico-city/m
 
 #	--k 10 -> create 10 plans for each person to have more choices for CountOptimization
 input/mexico-city-initial-1pct.plans.xml.gz: input/mexico-city-activities-1pct.plans.xml.gz input/v1.0/mexico-city-v1.0-facilities.xml.gz input/v1.0/mexico-city-v1.0-network.xml.gz
-	$(sc) prepare init-location-choice\
+	$(sc) --income-area "" prepare init-location-choice\
 	 	--input $<\
 	 	--output $@\
 	 	--facilities $(word 2,$^)\
@@ -155,19 +157,19 @@ input/mexico-city-initial-1pct.plans.xml.gz: input/mexico-city-activities-1pct.p
 	 	--k 10\
 
 # For debugging and visualization
-	$(sc) prepare downsample-population $@\
+	$(sc) --income-area "" prepare downsample-population $@\
 		 --sample-size 0.01\
 		 --samples 0.001\
 
 # create vehicle types
 input/mexico-city-v1.0-vehicle-types.xml: ./input
-	$(sc) prepare vehicle-types\
+	$(sc) --income-area "" prepare vehicle-types\
 		--directory $<\
 		--modes car,bike
 
 # create count stations based on csv count data
 input/mexico-city-v1.0.counts_car.2017.xml: ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/data-scenario-generation/counts input/v1.0/mexico-city-v1.0-network-with-pt.xml.gz input/v1.0/mexico-city-v1.0-network-linkGeometries.csv
-	$(sc) prepare counts\
+	$(sc) --income-area "" prepare counts\
 		--input $<\
 		--network $(word 2,$^)\
 		--network-geometries $(word 3,$^)\
@@ -176,12 +178,12 @@ input/mexico-city-v1.0.counts_car.2017.xml: ../../public-svn/matsim/scenarios/co
 		--manual-matched-counts input/manualLinkAssignment.csv\
 		--year 2017
 
-	$(sc) prepare scale-counts\
+	$(sc) --income-area "" prepare scale-counts\
 		--input $@
 
 # create first scenario specific config
 input/mexico-city-v1.0-1pct.input.config.xml: ./input/v1.0 ./input
-	$(sc) prepare config\
+	$(sc) --income-area "" prepare config\
 		--input-directory $<\
 		--modes car,bike,pt,walk,taxibus\
 		--output-directory $(word 2,$^)
@@ -198,7 +200,7 @@ input/eval-opt:
 # experienced plans are output of above calibration eval run
 ERROR_METRIC ?= LOG_ERROR
 input/mexico-city-initial-1pct-plan-selection.csv: ./input/mexico-city-initial-1.0-1pct.experienced_plans.xml.gz input/v1.0/mexico-city-v1.0-network.xml.gz input/v1.0/mexico-city-v1.0.counts_car.2017.xml
-	$(sc) prepare run-count-opt\
+	$(sc) --income-area "" prepare run-count-opt\
 	 --input $<\
 	 --network $(word 2,$^)\
      --counts $(word 3,$^)\
@@ -207,48 +209,52 @@ input/mexico-city-initial-1pct-plan-selection.csv: ./input/mexico-city-initial-1
 	 --k 10
 
 input/mexico-city-initial-1pct.LOG_ERROR.plans.xml.gz: input/v1.0/mexico-city-initial-1pct.plans.xml.gz input/mexico-city-initial-1pct-plan-selection.csv
-	$(sc) prepare select-plans-idx\
+	$(sc) --income-area "" prepare select-plans-idx\
  	 --input $<\
  	 --csv $(word 2,$^)\
  	 --output $@\
  	 --exp-plans input/mexico-city-initial-1.0-1pct.experienced_plans.xml.gz
 
 input/v1.0/mexico-city-v1.0-1pct.input.plans.xml.gz: input/v1.0/mexico-city-initial-1pct.LOG_ERROR.plans.xml.gz
-	$(sc) prepare split-activity-types-duration\
+	$(sc) --income-area "" prepare split-activity-types-duration\
 		--input $<\
 		--output $@
 
-	$(sc) prepare change-mode-names\
+	$(sc) --income-area "" prepare change-mode-names\
 		--input $@\
 		--output $@
 
-	$(sc) prepare check-car-avail\
+	$(sc) --income-area "" prepare check-car-avail\
 		--input $@\
 		--output $@\
 		--mode walk
 
-	$(sc) prepare fix-subtour-modes\
+	$(sc) --income-area "" prepare fix-subtour-modes\
 		--input $@\
 		--output $@\
 		--all-plans\
 		--coord-dist 100
+	# for SMC all agents > 18 (age) should have carAvail = always
+	$(sc) --income-area "" prepare fix-vehicle-availabilities\
+		--input $@\
+		--output $@
 
 # commented out due to bug when reading plans / activities with assigned facilityIds, see matsim-libs PR3106
-#	$(sc) prepare xy-to-links\
+#	$(sc) --income-area "" prepare xy-to-links\
 #		--network input/v1.0/mexico-city-v1.0-network.xml.gz\
 #		--input $@\
 #		--output $@
 
-	$(sc) prepare extract-home-coordinates $@\
+	$(sc) --income-area "" prepare extract-home-coordinates $@\
 		--csv input/v1.0/mexico-city-v1.0-homes.csv
 
-	$(sc) prepare downsample-population $@\
+	$(sc) --income-area "" prepare downsample-population $@\
 		 --sample-size 0.01\
 		 --samples 0.001\
 
 # this step does not fully work yet, because some activities do not have a coord yet -> see comments on prepare xy-to-links
 check: input/v1.0/mexico-city-v1.0-1pct.input.plans.xml.gz
-	$(sc) analysis check-population $<\
+	$(sc) --income-area "" analysis check-population $<\
  	 --input-crs $(CRS)\
 	 --shp ../../public-svn/matsim/scenarios/countries/mx/mexico-city/mexico-city-v1.0/input/data-scenario-generation/zmvm_2010/zmvm_2010_utm12n.shp\
 	 --shp-crs $(CRS)

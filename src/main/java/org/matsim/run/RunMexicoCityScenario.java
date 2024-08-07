@@ -34,6 +34,7 @@ import org.matsim.core.replanning.annealing.ReplanningAnnealerConfigGroup;
 import org.matsim.core.router.AnalysisMainModeIdentifier;
 import org.matsim.core.scoring.functions.ScoringParametersForPerson;
 import org.matsim.prepare.*;
+import org.matsim.prepare.network.CreateBikeNetworkFromShp;
 import org.matsim.prepare.network.CreateMexicoCityNetworkFromSumo;
 import org.matsim.prepare.network.PrepareNetwork;
 import org.matsim.prepare.opt.RunCountOptimization;
@@ -55,9 +56,9 @@ import java.util.*;
 @CommandLine.Command(header = ":: Open Mexico-City Scenario ::", version = RunMexicoCityScenario.VERSION, mixinStandardHelpOptions = true)
 @MATSimApplication.Prepare({
 	AdaptCountsScale.class, AdjustActivityToLinkDistances.class, ChangeFacilities.class, ChangeModeNames.class, CheckActivityFacilities.class, CheckCarAvailability.class, CleanNetwork.class, CorrectPtVehicleTypes.class,
-	CreateCommuterRelations.class, CreateCountsFromDatosVialesPortal.class, CreateLandUseShp.class, CreateMATSimFacilities.class, CreateMetropolitanAreaPopulation.class,
+	CreateBikeNetworkFromShp.class, CreateCommuterRelations.class, CreateCountsFromDatosVialesPortal.class, CreateLandUseShp.class, CreateMATSimFacilities.class, CreateMetropolitanAreaPopulation.class,
 	CreateMexicoCityPopulation.class, CreateMexicoCityScenarioConfig.class, CreateMexicoCityNetworkFromSumo.class, CreateTransitScheduleFromGtfs.class, CreateVehicleTypes.class,
-	DownSamplePopulation.class, ExtractHomeCoordinates.class, FixSubtourModes.class, GenerateShortDistanceTrips.class, InitLocationChoice.class, MergePopulations.class,
+	DownSamplePopulation.class, ExtractHomeCoordinates.class, FixSubtourModes.class, FixVehicleAvailAttributes.class, GenerateShortDistanceTrips.class, InitLocationChoice.class, MergePopulations.class,
 	PrepareBikePopulation.class, PrepareIncome.class, PrepareNetwork.class, ResolveGridCoordinates.class, RunActivitySampling.class, RunCountOptimization.class,
 	SelectPlansFromIndex.class, SplitActivityTypesDuration.class, XYToLinks.class
 })
