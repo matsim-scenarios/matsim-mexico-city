@@ -6,9 +6,11 @@ import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.controler.Controler;
 import org.matsim.simwrapper.SimWrapperConfigGroup;
+import picocli.CommandLine;
 
 import javax.annotation.Nullable;
 
+@CommandLine.Command(header = ":: Open Mexico-City Scenario ::", version = RunMexicoCityScenario.VERSION, mixinStandardHelpOptions = true)
 public class RunCustomMexicoCityScenario extends MATSimApplication {
 
 	private final RunMexicoCityScenario baseScenario = new RunMexicoCityScenario();
