@@ -2,6 +2,7 @@ library(tidyverse)
 library(matsim)
 library(RColorBrewer)
 library(sf)
+library(ggokabeito)
 
 ############################################# plot bars for income distr comparison avenidas principales #####################################################################
 income_distr52 <- read_delim(file = "Y:/net/ils/matsim-mexico-city/case-studies/roadPricing-avenidas-principales/output/output-mexico-city-v1.0-1pct-roadPricing-avenidas-principales-fare52/analysis/roadpricing/roadPricing_income_groups.csv",
@@ -54,23 +55,26 @@ ggplot(df_long, aes(x = incomeGroup, y = share_value, fill = incomeGroup)) +
 
 data <- read.delim(file="Y:/net/ils/matsim-mexico-city/case-studies/roadPricing_modalShift_cdmx.tsv")
 
+data <- data %>% 
+  mutate(tollAmountChar = ifelse(tollAmount > 1.0, paste0(as.character(round(tollAmount, 0)), "MXN"), 
+                                 paste0(as.character(tollAmount * 100), "%")))
+
 data_long <- data %>%
-  gather(key = "transport_mode", value = "value", -tollAmount, -case)
+  gather(key = "transport_mode", value = "value", -tollAmount, -case, -tollAmountChar)
 
 # Convert tollAmount to a factor to treat it as categorical
-data_long$tollAmount <- as.factor(data_long$tollAmount)
+data_long$tollAmountChar <- as.factor(data_long$tollAmountChar)
 
 # Plot
-ggplot(data_long, aes(x = tollAmount, y = value, color = transport_mode, shape = factor(tollAmount))) +
-  geom_point(size = 2) +
-  facet_wrap(~ case, scales = "free") +
+ggplot(data_long, aes(x = tollAmountChar, y = value, color = transport_mode)) +
+  geom_point(size = 2, position = position_jitter(width = 0.2, height = 0)) +  # Add jitter to avoid overlap
+  facet_wrap(~ case) +
   labs(
-    x = "Toll Amount",
+    x = "Toll Amount (Categorical)",
     y = expression(Delta * " from Base Case"),
-    color = "Transport Mode",
-    shape = "Toll Amount"
+    color = "Transport Mode"
   ) +
-  scale_shape_manual(values = c(16, 17, 18, 19, 20, 21, 22, 23, 24, 25)) +  # Exclude shape 3 (+)
+  scale_color_okabe_ito() +
   theme_minimal() +
   theme(
     axis.title.x = element_text(size = 14),
@@ -78,7 +82,7 @@ ggplot(data_long, aes(x = tollAmount, y = value, color = transport_mode, shape =
     axis.text = element_text(size = 12),
     legend.title = element_text(size = 14),
     legend.text = element_text(size = 12),
-    strip.text = element_text(size = 14)  # For facet labels
+    strip.text = element_text(size = 14)
   )
 
 
