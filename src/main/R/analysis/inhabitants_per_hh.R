@@ -10,6 +10,10 @@ vv_real <- vv %>%
   uncount(factor) %>% 
   mutate(noInhCapped = ifelse(p1_1 <= 7,p1_1,7))
 
+mean_hh_size <- mean(vv$p1_1)
+mean_hh_size_real <- mean(vv_real$p1_1)
+# the 2 above values are similar to the mean hh size according to ENIGH2018: 3.6
+
 distr <- vv_real %>%
   group_by(noInhCapped) %>%
   summarize(n=n()) %>%

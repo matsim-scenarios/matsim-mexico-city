@@ -25,16 +25,20 @@ income_distr0.01 <- read_delim(file = "Y:/net/ils/matsim-mexico-city/case-studie
 income_distr <- merge(income_distr52, income_distr0.001, by="incomeGroup")
 income_distr <- merge(income_distr, income_distr0.005, by="incomeGroup")
 income_distr <- merge(income_distr, income_distr0.01, by="incomeGroup") %>% 
-  select(incomeGroup, absolute, relative_0.001, relative_0.005, relative_0.01)
+  select(incomeGroup, absolute, relative_0.001, relative_0.005, relative_0.01) %>%
+  mutate(incomeGroup = factor(incomeGroup, levels=c("0 - 4999", "5000 - 9999", "10000 - 14999", "15000 - 19999", "20000 - 24999",
+                                                       "25000 - 29999", "30000 - 34999", "35000 - 39999", "40000 - 44999", "45000 - 49999",
+                                                       "50000+"))) %>%
+  arrange(incomeGroup)
 
-income_distr_long <- income_distr %>% 
-  gather(key="incomeGroup", value="share") %>% 
-  mutate(fare = case_when(
-    incomeGroup=="share_52" ~ "52",
-    incomeGroup=="share_0.001" ~ "0.001",
-    incomeGroup=="share_0.005" ~ "0.005",
-    incomeGroup=="share_0.01" ~ "0.01"
-  ))
+# income_distr_long <- income_distr %>% 
+#   gather(key="incomeGroup", value="share") %>% 
+#   mutate(fare = case_when(
+#     incomeGroup=="share_52" ~ "52",
+#     incomeGroup=="share_0.001" ~ "0.001",
+#     incomeGroup=="share_0.005" ~ "0.005",
+#     incomeGroup=="share_0.01" ~ "0.01"
+#   ))
 
 df_long <- income_distr %>%
   gather(key = "share_type", value = "share_value", absolute, relative_0.001, relative_0.005, relative_0.01)
@@ -91,6 +95,8 @@ ggplot(data_long, aes(x = tollAmountChar, y = value, color = transport_mode)) +
 persons_base <- read_delim("Y:/net/ils/matsim-mexico-city/case-studies/baseCase/output/output-mexico-city-v1.0-1pct/mexico-city-v1.0-1pct.output_persons.csv.gz",
                            locale = locale(decimal_mark = "."),
                            n_max = Inf)
+
+max(persons_base$income)
 
 crs <- "EPSG:4485"
 
@@ -184,6 +190,25 @@ persons_base <- persons_base %>%
   mutate(income_group = find_income_group(income)) %>% 
   ungroup()
 
+persons_base_E <- persons_base %>% 
+  filter(income_group == "E")
+
+ggplot(persons_base_E, aes(x = "", y = income)) +
+  geom_violin(fill = "purple4", color = "black") +
+  geom_vline(xintercept = 1, color = "black", linetype = "dashed", size = 1) +
+  labs(title = "Violin Plot of Income Group E", y = "Income") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 20),
+    axis.title = element_text(size = 15),
+    axis.text = element_text(size = 12)
+  )
+
+below_100MXN_persons <- persons_base %>% 
+  filter(income <= 100)
+
+  
+
 na_persons <- persons_base %>% 
   filter(is.na(income_group))
 
@@ -191,14 +216,20 @@ na_persons <- persons_base %>%
 grouped <- persons_base %>% 
   group_by(income_group) %>% 
   summarize(count = n()) %>% 
-  mutate(share = count / sum(count))
+  mutate(share = count / sum(count)) %>% 
+  arrange(desc(income_group)) %>%
+  mutate(income_group = factor(income_group, levels = income_group))
 
 ggplot(grouped, aes(x = income_group, y = share)) +
-  geom_bar(stat = "identity") +
-  geom_text(aes(label = round(share, digits=4)), vjust = -0.5) + # This line adds the data values to each bar
+  geom_bar(stat = "identity", width = 0.7) +
   labs(title = "overall", x = "Income Group", y = "Share") +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(
+    plot.title = element_text(size = 30, hjust = 0.5),
+    axis.title = element_text(size = 30),
+    axis.text = element_text(size = 30),
+    axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ylim(0, 1)
 
 modes <- c("car", "bike", "pt", "taxibus", "walk")
 
@@ -213,14 +244,20 @@ for (mode in modes) {
   filtered_persons_grouped <- filtered_persons %>% 
     group_by(income_group) %>% 
     summarize(count = n()) %>% 
-    mutate(share = count / sum(count))
+    mutate(share = count / sum(count)) %>% 
+    arrange(desc(income_group)) %>%
+    mutate(income_group = factor(income_group, levels = income_group))
   
   plot <- ggplot(filtered_persons_grouped, aes(x = income_group, y = share)) +
-            geom_bar(stat = "identity") +
-            geom_text(aes(label = round(share, digits=4)), vjust = -0.5) + # This line adds the data values to each bar
+            geom_bar(stat = "identity", width = 0.7) +
             labs(title = mode, x = "Income Group", y = "Share") +
             theme_minimal() +
-            theme(plot.title = element_text(hjust = 0.5))
+            theme(
+              plot.title = element_text(size = 30, hjust = 0.5),
+              axis.title = element_text(size = 30),
+              axis.text = element_text(size = 30),
+              axis.text.x = element_text(angle = 90, hjust = 1)) +
+    ylim(0, 1)
   
   print(plot)
 }
