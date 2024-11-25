@@ -40,6 +40,7 @@ import org.matsim.prepare.network.PrepareNetwork;
 import org.matsim.prepare.opt.RunCountOptimization;
 import org.matsim.prepare.opt.SelectPlansFromIndex;
 import org.matsim.prepare.population.*;
+import org.matsim.run.MexicoCityRoadPricing.MexicoCityAbsoluteFareRoadPricingModule;
 import org.matsim.run.MexicoCityRoadPricing.MexicoCityIncomeDependentRoadPricingModule;
 import org.matsim.simwrapper.SimWrapperConfigGroup;
 import org.matsim.simwrapper.SimWrapperModule;
@@ -311,7 +312,7 @@ public class RunMexicoCityScenario extends MATSimApplication {
 						install(new MexicoCityIncomeDependentRoadPricingModule());
 						log.warn("Running road pricing scenario with a toll value of {}. Make sure, that this is a relative value.", RoadPricingOptions.toll);
 					} else {
-						install(new RoadPricingModule());
+						install(new MexicoCityAbsoluteFareRoadPricingModule());
 						log.warn("Running road pricing scenario with a toll value of {}. Make sure, that this is an absolute value.", RoadPricingOptions.toll);
 					}
 				}
