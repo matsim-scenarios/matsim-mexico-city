@@ -57,20 +57,20 @@ import org.matsim.core.router.util.TravelDisutility;
  *
  * @author mrieser
  */
-class MexicoCityRoadPricingControlerListener implements StartupListener, IterationEndsListener, ShutdownListener {
+class MexicoCityIncomeDependentRoadPricingControlerListener implements StartupListener, IterationEndsListener, ShutdownListener {
 
-	final Logger log = LogManager.getLogger(MexicoCityRoadPricingControlerListener.class);
+	final Logger log = LogManager.getLogger(MexicoCityIncomeDependentRoadPricingControlerListener.class);
 
 	private final RoadPricingScheme scheme;
-	private final IncomeRelatedRoadPricingTollCalculator calcPaidToll;
+	private final MexicoCityIncomeDependentRoadPricingTollCalculator calcPaidToll;
 	private final CalcAverageTolledTripLength cattl;
 	private final OutputDirectoryHierarchy controlerIO;
 
 	@Inject
-	MexicoCityRoadPricingControlerListener(RoadPricingScheme scheme, Network network,
-										   EventsManager events, OutputDirectoryHierarchy controlerIO, Population population ) {
+	MexicoCityIncomeDependentRoadPricingControlerListener(RoadPricingScheme scheme, Network network,
+														  EventsManager events, OutputDirectoryHierarchy controlerIO, Population population ) {
 		this.scheme = scheme;
-		this.calcPaidToll = new IncomeRelatedRoadPricingTollCalculator( network, scheme, events, population );
+		this.calcPaidToll = new MexicoCityIncomeDependentRoadPricingTollCalculator( network, scheme, events, population );
 		this.cattl = new CalcAverageTolledTripLength( network, scheme, events );
 		this.controlerIO = controlerIO;
 		Gbl.printBuildInfo("RoadPricing", "/org.matsim.contrib/roadpricing/revision.txt");

@@ -23,6 +23,7 @@ package org.matsim.run.MexicoCityRoadPricing;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.matsim.api.core.v01.Id;
+import org.matsim.api.core.v01.TransportMode;
 import org.matsim.api.core.v01.events.LinkEnterEvent;
 import org.matsim.api.core.v01.events.PersonMoneyEvent;
 import org.matsim.api.core.v01.events.VehicleEntersTrafficEvent;
@@ -53,7 +54,7 @@ import java.util.TreeMap;
  *
  * @author mrieser
  */
-public final class IncomeRelatedRoadPricingTollCalculator implements LinkEnterEventHandler, VehicleEntersTrafficEventHandler, VehicleLeavesTrafficEventHandler {
+public final class MexicoCityIncomeDependentRoadPricingTollCalculator implements LinkEnterEventHandler, VehicleEntersTrafficEventHandler, VehicleLeavesTrafficEventHandler {
 
 	/**
 	 * Much of this is no longer needed since we now throw money events immediately when links are left.  It is, however, still
@@ -68,9 +69,9 @@ public final class IncomeRelatedRoadPricingTollCalculator implements LinkEnterEv
 
 	private final Population population;
 	private final RoadPricingScheme scheme;
-	Logger log = LogManager.getLogger( IncomeRelatedRoadPricingTollCalculator.class ) ;
+	Logger log = LogManager.getLogger( MexicoCityIncomeDependentRoadPricingTollCalculator.class ) ;
 
-	IncomeRelatedRoadPricingTollCalculator(final Network network, final RoadPricingScheme scheme, EventsManager events, final Population population) {
+	MexicoCityIncomeDependentRoadPricingTollCalculator(final Network network, final RoadPricingScheme scheme, EventsManager events, final Population population) {
 		events.addHandler(this);
 		this.network = network;
 		this.scheme = scheme;
@@ -211,13 +212,13 @@ public final class IncomeRelatedRoadPricingTollCalculator implements LinkEnterEv
 		@Override
 		public void handleEvent(final LinkEnterEvent event, final Link link) {
 			Id<Person> driverId = delegate.getDriverOfVehicle(event.getVehicleId());
-			Cost cost = IncomeRelatedRoadPricingTollCalculator.this.scheme.getLinkCostInfo(link.getId(), event.getTime(), driverId, event.getVehicleId());
+			Cost cost = MexicoCityIncomeDependentRoadPricingTollCalculator.this.scheme.getLinkCostInfo(link.getId(), event.getTime(), driverId, event.getVehicleId());
 			if (cost != null) {
 				Person p = population.getPersons().get(driverId);
 				double newToll = link.getLength() * cost.amount * PersonUtils.getIncome(p);
 				events.processEvent(new PersonMoneyEvent(event.getTime(), driverId, -newToll, "incomeRelatedToll", null));
 
-				AgentTollInfo info = IncomeRelatedRoadPricingTollCalculator.this.agents.computeIfAbsent( driverId, (key) -> new AgentTollInfo() );
+				AgentTollInfo info = MexicoCityIncomeDependentRoadPricingTollCalculator.this.agents.computeIfAbsent( driverId, (key) -> new AgentTollInfo() );
 				info.toll += newToll;
 			}
 		}
@@ -236,12 +237,12 @@ public final class IncomeRelatedRoadPricingTollCalculator implements LinkEnterEv
 		@Override
 		public void handleEvent(final LinkEnterEvent event, final Link link) {
 			Id<Person> driverId = delegate.getDriverOfVehicle(event.getVehicleId());
-			Cost cost = IncomeRelatedRoadPricingTollCalculator.this.scheme.getLinkCostInfo(link.getId(), event.getTime(), driverId, event.getVehicleId() );
+			Cost cost = MexicoCityIncomeDependentRoadPricingTollCalculator.this.scheme.getLinkCostInfo(link.getId(), event.getTime(), driverId, event.getVehicleId() );
 			if (cost != null) {
 				Person p = population.getPersons().get(driverId);
 				events.processEvent(new PersonMoneyEvent(event.getTime(), driverId, -cost.amount * PersonUtils.getIncome(p), "incomeRelatedToll", null));
 
-				AgentTollInfo info = IncomeRelatedRoadPricingTollCalculator.this.agents.computeIfAbsent( driverId, (key) -> new AgentTollInfo() );
+				AgentTollInfo info = MexicoCityIncomeDependentRoadPricingTollCalculator.this.agents.computeIfAbsent( driverId, (key) -> new AgentTollInfo() );
 				info.toll += cost.amount * PersonUtils.getIncome(p);
 			}
 		}
@@ -269,28 +270,31 @@ public final class IncomeRelatedRoadPricingTollCalculator implements LinkEnterEv
 
 		@Override
 		public void handleEvent(final LinkEnterEvent event, final Link link) {
-			Id<Person> driverId = delegate.getDriverOfVehicle(event.getVehicleId());
-			Cost cost = IncomeRelatedRoadPricingTollCalculator.this.scheme.getLinkCostInfo(link.getId(), event.getTime(), driverId, event.getVehicleId() );
-			if (cost != null) {
-				AgentTollInfo info = IncomeRelatedRoadPricingTollCalculator.this.agents.get(driverId);
-				if (info == null) {
-					/* The agent is not yet "registered" */
+//			bikes are tolled if not filtered here....
+			if (event.getVehicleId().toString().contains(TransportMode.car)) {
+				Id<Person> driverId = delegate.getDriverOfVehicle(event.getVehicleId());
+				Cost cost = MexicoCityIncomeDependentRoadPricingTollCalculator.this.scheme.getLinkCostInfo(link.getId(), event.getTime(), driverId, event.getVehicleId());
+				if (cost != null) {
+					AgentTollInfo info = MexicoCityIncomeDependentRoadPricingTollCalculator.this.agents.get(driverId);
+					if (info == null) {
+						/* The agent is not yet "registered" */
 
-					/* Generate a "registration object" */
-					info = new AgentTollInfo();
+						/* Generate a "registration object" */
+						info = new AgentTollInfo();
 
-					/* Register it. */
-					IncomeRelatedRoadPricingTollCalculator.this.agents.put(driverId, info);
+						/* Register it. */
+						MexicoCityIncomeDependentRoadPricingTollCalculator.this.agents.put(driverId, info);
 
-					Person p = population.getPersons().get(driverId);
+						Person p = population.getPersons().get(driverId);
 
-					/* The toll amount comes from the current link, but should
-					 * be the same for all links. */
+						/* The toll amount comes from the current link, but should
+						 * be the same for all links. */
 //					This is the only difference to the "normal" RoadPricingTollCalculator. Instead of parsing the amount, it is multiplied by the person's income.
 //					-> amount assigned to links is a relative value, e.g. 0.01% of the income. -sme0224
-					events.processEvent(new PersonMoneyEvent(event.getTime(), driverId, -cost.amount * PersonUtils.getIncome(p), "incomeRelatedToll", null));
+						events.processEvent(new PersonMoneyEvent(event.getTime(), driverId, -cost.amount * PersonUtils.getIncome(p), "incomeRelatedToll", null));
 
-					info.toll = cost.amount * PersonUtils.getIncome(p);
+						info.toll = cost.amount * PersonUtils.getIncome(p);
+					}
 				}
 			}
 		}

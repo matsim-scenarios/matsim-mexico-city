@@ -4,25 +4,28 @@ import com.google.inject.Singleton;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.matsim.api.core.v01.TransportMode;
-import org.matsim.contrib.roadpricing.*;
+import org.matsim.contrib.roadpricing.RoadPricingConfigGroup;
+import org.matsim.contrib.roadpricing.RoadPricingScheme;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.controler.AbstractModule;
 import org.matsim.core.router.costcalculators.RandomizingTimeDistanceTravelDisutilityFactory;
-import org.matsim.run.MexicoCityRoadPricing.MexicoCityRoadPricingModuleDefaults.*;
+import org.matsim.run.MexicoCityRoadPricing.MexicoCityRoadPricingModuleDefaults.RoadPricingInitializer;
+import org.matsim.run.MexicoCityRoadPricing.MexicoCityRoadPricingModuleDefaults.RoadPricingSchemeProvider;
+import org.matsim.run.MexicoCityRoadPricing.MexicoCityRoadPricingModuleDefaults.TravelDisutilityIncludingTollFactoryProvider;
 
 /**
  * copied from org.matsim.contrib.roadpricing.
  */
-public final class MexicoCityRoadPricingModule extends AbstractModule {
-	final Logger log = LogManager.getLogger(MexicoCityRoadPricingModule.class);
+public final class MexicoCityAbsoluteFareRoadPricingModule extends AbstractModule {
+	final Logger log = LogManager.getLogger(MexicoCityAbsoluteFareRoadPricingModule.class);
 
 	private RoadPricingScheme scheme;
 
-	public MexicoCityRoadPricingModule() {}
+	public MexicoCityAbsoluteFareRoadPricingModule() {}
 
 	/* For the time being this has to be public, otherwise the roadpricing TollFactor
 	cannot be considered, rendering integration tests useless, JWJ Jan'20 */
-	public MexicoCityRoadPricingModule(RoadPricingScheme scheme ) {
+	public MexicoCityAbsoluteFareRoadPricingModule(RoadPricingScheme scheme ) {
 		this.scheme = scheme;
 	}
 
@@ -30,7 +33,7 @@ public final class MexicoCityRoadPricingModule extends AbstractModule {
 	public void install() {
 		ConfigUtils.addOrGetModule(getConfig(), RoadPricingConfigGroup.class);
 
-		log.warn("Installing scenario specific module {}. Make sure, this is what you want!", MexicoCityRoadPricingModule.class.getName());
+		log.warn("Installing scenario specific module {}. Make sure, this is what you want!", MexicoCityAbsoluteFareRoadPricingModule.class.getName());
 
 		// TODO sort out different ways to set toll schemes; reduce automagic
 		// TODO JWJ: is this still too "automagic"?
@@ -59,7 +62,7 @@ public final class MexicoCityRoadPricingModule extends AbstractModule {
 		// that out.  kai, sep'16
 
 		// this is what makes the mobsim compute tolls and generate money events
-		addControlerListenerBinding().to(MexicoCityRoadPricingControlerListener.class);
+		addControlerListenerBinding().to(MexicoCityAbsoluteFareRoadPricingControlerListener.class);
 
 	}
 }
