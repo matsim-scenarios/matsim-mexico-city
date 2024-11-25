@@ -49,7 +49,7 @@ public class RoadPricingAnalysis implements MATSimAppCommand {
 	private InputOptions input = InputOptions.ofCommand(RoadPricingAnalysis.class);
 	@CommandLine.Mixin
 	private OutputOptions output = OutputOptions.ofCommand(RoadPricingAnalysis.class);
-	@CommandLine.Option(names = "--income-groups", split = ",", description = "List of income for binning", defaultValue = "0,5000,10000,15000,20000,25000,30000,35000,40000,45000,50000")
+	@CommandLine.Option(names = "--income-groups", split = ",", description = "List of income for binning", defaultValue = "0,4366,10997,18760,56605,137470")
 	private List<Integer> incomeGroups;
 
 	@CommandLine.Option(names = "--hour-groups", split = ",", description = "List of income for binning", defaultValue = "0.,1.,2.,3.,4.,5.,6.,7.,8.,9.,10.,11.,12.,13.,14.,15.,16.,17.,18.,19.,20.,21.,22.,23.,24.")
