@@ -97,5 +97,30 @@ trips_base <- merge(trips_base, points_start[, c("trip_id", "start_within")], by
   filter(!is.na(start_within) | !is.na(end_within)) %>%
   select(-geometry.x, -geometry.y, -start_within, -end_within)
 
+########################################## analyze mean number of car trips / person for base and policy ####################################################
+
+trips_base_car_summary <- trips_base %>% 
+  filter(main_mode == "car") %>% 
+  group_by(person) %>% 
+  summarise(num_trips = n())
+
+mean_num_trips_car_base <- mean(trips_base_car_summary$num_trips)
+
+trips_roadPricing_car_summary <- trips_roadPricing %>% 
+  filter(main_mode == "car") %>% 
+  group_by(person) %>% 
+  summarise(num_trips = n())
+
+mean_num_trips_car_roadPricing <- mean(trips_roadPricing_car_summary$num_trips)
+
+names <- c("meanNumTripsBase", "meanNumTripsRoadPricing")
+values <- c(mean_num_trips_car_base, mean_num_trips_car_roadPricing)
+
+df_mean_num_trips <- data.frame(names, values) 
+  
+
+############################################### print result files ####################################################################################
+
 plotModalShiftSankey(trips_base, trips_roadPricing, dump.output.to = analysisDir)
 write.csv(trips_roadPricing, file=paste0(analysisDir, "/output_trips.roadPricing-area.csv.gz"), quote=FALSE)
+write.csv(df_mean_num_trips, file=paste0(analysisDir, "/mean-num-trips-comp.csv"), quote=FALSE)
