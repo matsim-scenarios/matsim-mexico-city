@@ -105,32 +105,19 @@ public class RoadPricingAnalysis implements MATSimAppCommand {
 		}
 		Table filtered = moneyEvents.where(Selection.with(idx.toIntArray()));
 
-		double totalToll = (double) filtered.summarize(amount, AggregateFunctions.sum).apply().column("Sum [amount]").get(0);
-		double medianTollPaid = MexicoCityUtils.calcMedian(filtered.doubleColumn(amount).asList());
-		double meanTollPaid = totalToll / filtered.rowCount();
-
-		DecimalFormat f = new DecimalFormat("0.00", new DecimalFormatSymbols(Locale.ENGLISH));
-
-		try (CSVPrinter printer = new CSVPrinter(new FileWriter(output.getPath("roadPricing_tolled_agents.csv").toString()), CSVFormat.DEFAULT)) {
-			printer.printRecord("\"total toll paid [MXN]\"", f.format(totalToll));
-			printer.printRecord("\"number of tolled agents\"", filtered.rowCount());
-			printer.printRecord("\"mean toll paid [MXN]\"", f.format(meanTollPaid));
-			printer.printRecord("\"median toll paid [MXN]\"", f.format(medianTollPaid));
-		}
-
-//		find the tolled trips for each money event. then filter for tolled car trips only
+		//		find the tolled trips for each money event. then filter for tolled car trips only
 		TextColumn personMoneyEventsPersons = filtered.textColumn(person);
 		IntList idy = new IntArrayList();
 
-		 for (int i = 0; i < trips.rowCount(); i++) {
+		for (int i = 0; i < trips.rowCount(); i++) {
 			Row row = trips.row(i);
 
 			String personId = row.getText(person);
 
-			 Table tollPersonTable = filtered.where(personMoneyEventsPersons.eval(p -> p.contains(personId)));
+			Table tollPersonTable = filtered.where(personMoneyEventsPersons.eval(p -> p.contains(personId)));
 
 //			if person not among toll payers, skip
-			 if (tollPersonTable.rowCount() != 1) {
+			if (tollPersonTable.rowCount() != 1) {
 				continue;
 			}
 
@@ -146,13 +133,26 @@ public class RoadPricingAnalysis implements MATSimAppCommand {
 		}
 
 //		 only tolled policy trips
-		 Table tolledTrips = trips.where(Selection.with(idy.toIntArray()));
+		Table tolledTrips = trips.where(Selection.with(idy.toIntArray()));
 
 //		 only tolled policy trips by main mode car
-		 Table tolledCarTrips = tolledTrips.where(tolledTrips.stringColumn("main_mode").eval(m -> m.equals(TransportMode.car)));
+		Table tolledCarTrips = tolledTrips.where(tolledTrips.stringColumn("main_mode").eval(m -> m.equals(TransportMode.car)));
 
 		Set<String> tolledPersons = new HashSet<>(tolledCarTrips.textColumn(person).asList());
 		Table result = filtered.where(filtered.textColumn(person).isIn(tolledPersons));
+
+		double totalToll = (double) result.summarize(amount, AggregateFunctions.sum).apply().column("Sum [amount]").get(0);
+		double medianTollPaid = MexicoCityUtils.calcMedian(result.doubleColumn(amount).asList());
+		double meanTollPaid = totalToll / result.rowCount();
+
+		DecimalFormat f = new DecimalFormat("0.00", new DecimalFormatSymbols(Locale.ENGLISH));
+
+		try (CSVPrinter printer = new CSVPrinter(new FileWriter(output.getPath("roadPricing_tolled_agents.csv").toString()), CSVFormat.DEFAULT)) {
+			printer.printRecord("\"total toll paid [MXN]\"", f.format(totalToll));
+			printer.printRecord("\"number of tolled agents\"", result.rowCount());
+			printer.printRecord("\"mean toll paid [MXN]\"", f.format(meanTollPaid));
+			printer.printRecord("\"median toll paid [MXN]\"", f.format(medianTollPaid));
+		}
 
 		Table joined = new DataFrameJoiner(result, person).inner(persons);
 
