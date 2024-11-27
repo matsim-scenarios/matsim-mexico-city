@@ -268,6 +268,7 @@ public final class MexicoCityAbsoluteFareRoadPricingTollCalculator implements Li
 		@Override
 		public void handleEvent(final LinkEnterEvent event, final Link link) {
 //			bikes are tolled if not filtered here....
+//			TODO: use vehicle type instead of vehicle id to detect mode
 			if (event.getVehicleId().toString().contains(TransportMode.car)) {
 				Id<Person> driverId = delegate.getDriverOfVehicle(event.getVehicleId());
 				Cost cost = MexicoCityAbsoluteFareRoadPricingTollCalculator.this.scheme.getLinkCostInfo(link.getId(), event.getTime(), driverId, event.getVehicleId());
