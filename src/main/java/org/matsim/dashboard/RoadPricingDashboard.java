@@ -14,6 +14,7 @@ import java.util.List;
  */
 public class RoadPricingDashboard implements Dashboard {
 	String share = "share";
+	String absolute = "Count [person]";
 
 	public RoadPricingDashboard() {
 //		no params needed
@@ -41,6 +42,18 @@ public class RoadPricingDashboard implements Dashboard {
 			})
 			.el(Bar.class, (viz, data) -> {
 				viz.title = "Tolled agents";
+				viz.description = "income groups";
+				viz.stacked = false;
+				viz.dataset = data.compute(RoadPricingAnalysis.class, "roadPricing_income_groups.csv");
+				viz.x = "incomeGroup";
+				viz.xAxisName = "income group";
+				viz.yAxisName = absolute;
+				viz.columns = List.of(absolute);
+			});
+
+		layout.row("daytime")
+			.el(Bar.class, (viz, data) -> {
+				viz.title = "Tolled agents";
 				viz.description = "per hour";
 				viz.stacked = false;
 				viz.dataset = data.compute(RoadPricingAnalysis.class, "roadPricing_daytime_groups.csv");
@@ -48,6 +61,16 @@ public class RoadPricingDashboard implements Dashboard {
 				viz.xAxisName = "hour";
 				viz.yAxisName = share;
 				viz.columns = List.of(share);
+			})
+			.el(Bar.class, (viz, data) -> {
+				viz.title = "Tolled agents";
+				viz.description = "per hour";
+				viz.stacked = false;
+				viz.dataset = data.compute(RoadPricingAnalysis.class, "roadPricing_daytime_groups.csv");
+				viz.x = "hour";
+				viz.xAxisName = "hour";
+				viz.yAxisName = absolute;
+				viz.columns = List.of(absolute);
 			});
 
 		layout.row("third")
