@@ -5,19 +5,19 @@ library(sf)
 library(ggokabeito)
 
 ############################################# plot bars for income distr comparison avenidas principales #####################################################################
-income_distr52 <- read_delim(file = "Y:/net/ils/matsim-mexico-city/case-studies/roadPricing-avenidas-principales/output/output-mexico-city-v1.0-1pct-roadPricing-avenidas-principales-fare52/analysis/roadpricing/roadPricing_income_groups.csv",
+income_distr52 <- read_delim(file = "Y:/net/ils/matsim-mexico-city/case-studies/roadPricing-avenidas-principales/output-b61a23c-bike-tolled/output-mexico-city-v1.0-1pct-roadPricing-avenidas-principales-fare52/analysis/roadpricing-roadPricing/roadPricing_income_groups.csv",
                               locale = locale(decimal_mark = "."),
                               n_max = Inf) %>% 
   rename(absolute = "share")
-income_distr0.001 <- read_delim(file = "Y:/net/ils/matsim-mexico-city/case-studies/roadPricing-avenidas-principales/output/output-mexico-city-v1.0-1pct-roadPricing-avenidas-principales-relative-income-fare0.001/analysis/roadpricing/roadPricing_income_groups.csv",
+income_distr0.001 <- read_delim(file = "Y:/net/ils/matsim-mexico-city/case-studies/roadPricing-avenidas-principales/output-b61a23c-bike-tolled/output-mexico-city-v1.0-1pct-roadPricing-avenidas-principales-relative-income-fare0.001/analysis/roadpricing-roadPricing/roadPricing_income_groups.csv",
                               locale = locale(decimal_mark = "."),
                               n_max = Inf) %>% 
   rename(relative_0.001 = "share")
-income_distr0.005 <- read_delim(file = "Y:/net/ils/matsim-mexico-city/case-studies/roadPricing-avenidas-principales/output/output-mexico-city-v1.0-1pct-roadPricing-avenidas-principales-relative-income-fare0.005/analysis/roadpricing/roadPricing_income_groups.csv",
+income_distr0.005 <- read_delim(file = "Y:/net/ils/matsim-mexico-city/case-studies/roadPricing-avenidas-principales/output-b61a23c-bike-tolled/output-mexico-city-v1.0-1pct-roadPricing-avenidas-principales-relative-income-fare0.005/analysis/roadpricing-roadPricing/roadPricing_income_groups.csv",
                                 locale = locale(decimal_mark = "."),
                                 n_max = Inf) %>% 
   rename(relative_0.005 = "share")
-income_distr0.01 <- read_delim(file = "Y:/net/ils/matsim-mexico-city/case-studies/roadPricing-avenidas-principales/output/output-mexico-city-v1.0-1pct-roadPricing-avenidas-principales-relative-income-fare0.01/analysis/roadpricing/roadPricing_income_groups.csv",
+income_distr0.01 <- read_delim(file = "Y:/net/ils/matsim-mexico-city/case-studies/roadPricing-avenidas-principales/output-b61a23c-bike-tolled/output-mexico-city-v1.0-1pct-roadPricing-avenidas-principales-relative-income-fare0.01/analysis/roadpricing-roadPricing/roadPricing_income_groups.csv",
                                 locale = locale(decimal_mark = "."),
                                 n_max = Inf) %>% 
   rename(relative_0.01 = "share")
@@ -26,10 +26,15 @@ income_distr <- merge(income_distr52, income_distr0.001, by="incomeGroup")
 income_distr <- merge(income_distr, income_distr0.005, by="incomeGroup")
 income_distr <- merge(income_distr, income_distr0.01, by="incomeGroup") %>% 
   select(incomeGroup, absolute, relative_0.001, relative_0.005, relative_0.01) %>%
-  mutate(incomeGroup = factor(incomeGroup, levels=c("0 - 4999", "5000 - 9999", "10000 - 14999", "15000 - 19999", "20000 - 24999",
-                                                       "25000 - 29999", "30000 - 34999", "35000 - 39999", "40000 - 44999", "45000 - 49999",
-                                                       "50000+"))) %>%
+  mutate(incomeGroup = factor(incomeGroup, levels=c("0 - 4365", "4366 - 10996", "10997 - 18759", "18760 - 56604", "56605 - 137469",
+                                                       "137470+"))) %>%
   arrange(incomeGroup)
+
+income_distr$incomeGroup_char <- c("E", "D_me", "D_mas", "C_me", "C_mas", "AB") 
+
+income_distr <- income_distr %>% 
+  arrange(desc(incomeGroup_char)) %>%
+  mutate(incomeGroup_char = factor(incomeGroup_char, levels = incomeGroup_char))
 
 # income_distr_long <- income_distr %>% 
 #   gather(key="incomeGroup", value="share") %>% 
@@ -43,8 +48,7 @@ income_distr <- merge(income_distr, income_distr0.01, by="incomeGroup") %>%
 df_long <- income_distr %>%
   gather(key = "share_type", value = "share_value", absolute, relative_0.001, relative_0.005, relative_0.01)
 
-
-ggplot(df_long, aes(x = incomeGroup, y = share_value, fill = incomeGroup)) +
+ggplot(df_long, aes(x = incomeGroup_char, y = share_value, fill = incomeGroup)) +
   geom_bar(stat = "identity", position = "dodge") +
   facet_wrap(~share_type) +
   labs(x = "Income Group",
@@ -53,7 +57,13 @@ ggplot(df_long, aes(x = incomeGroup, y = share_value, fill = incomeGroup)) +
   # scale_fill_brewer(palette = "Set3") +
   theme(plot.title = element_text(hjust = 0.5),
         legend.position = "none",
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  theme(
+    plot.title = element_text(size = 30, hjust = 0.5),
+    axis.title = element_text(size = 30),
+    axis.text = element_text(size = 30),
+    axis.text.x = element_text(angle = 90, hjust = 1),
+    strip.text = element_text(size = 30))
 
 ############################################## plot facet for modal shift over all cases ################################################################
 
