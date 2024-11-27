@@ -7,6 +7,7 @@ import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.lang3.Range;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.matsim.api.core.v01.TransportMode;
 import org.matsim.application.CommandSpec;
 import org.matsim.application.MATSimAppCommand;
 import org.matsim.application.options.CsvOptions;
@@ -34,11 +35,11 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.*;
 
+import static org.matsim.application.ApplicationUtils.globFile;
 import static tech.tablesaw.aggregate.AggregateFunctions.*;
 
 @CommandLine.Command(name = "roadPricing", description = "Calculates various road pricing related metrics.")
-@CommandSpec(
-	requires = {"personMoneyEvents.tsv", "persons.csv", "config.xml"},
+@CommandSpec(requireRunDirectory = true,
 	produces = {"roadPricing_income_groups.csv", "roadPricing_avg_toll_income_groups.csv", "roadPricing_tolled_agents.csv", "roadPricing_daytime_groups.csv", "roadPricing_tolled_agents_home_locations.csv", "roadPricing_area.shp"}
 )
 public class RoadPricingAnalysis implements MATSimAppCommand {
@@ -55,8 +56,6 @@ public class RoadPricingAnalysis implements MATSimAppCommand {
 	@CommandLine.Option(names = "--hour-groups", split = ",", description = "List of income for binning", defaultValue = "0.,1.,2.,3.,4.,5.,6.,7.,8.,9.,10.,11.,12.,13.,14.,15.,16.,17.,18.,19.,20.,21.,22.,23.,24.")
 	private List<Double> hourGroups;
 
-	private static final CsvOptions csv = new CsvOptions();
-
 	String share = "share";
 	String person = "person";
 	String incomeGroup = "incomeGroup";
@@ -69,18 +68,32 @@ public class RoadPricingAnalysis implements MATSimAppCommand {
 	@Override
 	public Integer call() throws Exception {
 
-		Map<String, ColumnType> columnTypes = new HashMap<>(Map.of(person, ColumnType.TEXT, "home_x", ColumnType.DOUBLE,
+		String personsPath = globFile(input.getRunDirectory(), "*output_persons.csv.gz").toString();
+		String tripsPath = globFile(input.getRunDirectory(), "*output_trips.csv.gz").toString();
+		String configPath = globFile(input.getRunDirectory(), "*output_config.xml").toString();
+		String personMoneyPath = globFile(input.getRunDirectory(), "*output_personMoneyEvents.tsv.gz").toString();
+
+		Map<String, ColumnType> personColumnTypes = new HashMap<>(Map.of(person, ColumnType.TEXT, "home_x", ColumnType.DOUBLE,
 			"home_y", ColumnType.DOUBLE, "income", ColumnType.STRING, "age", ColumnType.INTEGER));
 
-		Table persons = Table.read().csv(CsvReadOptions.builder(IOUtils.getBufferedReader(input.getPath("persons.csv")))
-			.columnTypesPartial(columnTypes)
-			.sample(false)
-			.separator(csv.detectDelimiter(input.getPath("persons.csv"))).build());
+		Map<String, ColumnType> tripColumnTypes = new HashMap<>(Map.of("person", ColumnType.TEXT,
+			"trav_time", ColumnType.STRING, "wait_time", ColumnType.STRING, "dep_time", ColumnType.STRING,
+			"longest_distance_mode", ColumnType.STRING, "main_mode", ColumnType.STRING));
 
-		Table moneyEvents = Table.read().csv(CsvReadOptions.builder(IOUtils.getBufferedReader(input.getPath("personMoneyEvents.tsv")))
+		Table persons = Table.read().csv(CsvReadOptions.builder(IOUtils.getBufferedReader(personsPath))
+			.columnTypesPartial(personColumnTypes)
+			.sample(false)
+			.separator(CsvOptions.detectDelimiter(personsPath)).build());
+
+		Table trips = Table.read().csv(CsvReadOptions.builder(IOUtils.getBufferedReader(tripsPath))
+			.columnTypesPartial(tripColumnTypes)
+			.sample(false)
+			.separator(CsvOptions.detectDelimiter(tripsPath)).build());
+
+		Table moneyEvents = Table.read().csv(CsvReadOptions.builder(IOUtils.getBufferedReader(personMoneyPath))
 			.columnTypesPartial(Map.of(person, ColumnType.TEXT, "time", ColumnType.DOUBLE, "purpose", ColumnType.TEXT, amount, ColumnType.DOUBLE))
 			.sample(false)
-			.separator(csv.detectDelimiter(input.getPath("personMoneyEvents.tsv"))).build());
+			.separator(CsvOptions.detectDelimiter(personMoneyPath)).build());
 
 //		filter person money events for toll events only
 		IntList idx = new IntArrayList();
@@ -105,7 +118,43 @@ public class RoadPricingAnalysis implements MATSimAppCommand {
 			printer.printRecord("\"median toll paid [MXN]\"", f.format(medianTollPaid));
 		}
 
-		Table joined = new DataFrameJoiner(moneyEvents, person).inner(persons);
+//		find the tolled trips for each money event. then filter for tolled car trips only
+		TextColumn personMoneyEventsPersons = filtered.textColumn(person);
+		IntList idy = new IntArrayList();
+
+		 for (int i = 0; i < trips.rowCount(); i++) {
+			Row row = trips.row(i);
+
+			String personId = row.getText(person);
+
+			 Table tollPersonTable = filtered.where(personMoneyEventsPersons.eval(p -> p.contains(personId)));
+
+//			if person not among toll payers, skip
+			 if (tollPersonTable.rowCount() != 1) {
+				continue;
+			}
+
+			double tripStart = parseTimeManually(row.getString("dep_time"));
+			double travelTime = parseTimeManually(row.getString("trav_time"));
+			double waitingTime = parseTimeManually(row.getString("wait_time"));
+
+			double tollPaymentTime = tollPersonTable.doubleColumn("time").get(0);
+
+			if (tollPaymentTime >= tripStart && tollPaymentTime <= tripStart + travelTime + waitingTime) {
+				idy.add(i);
+			}
+		}
+
+//		 only tolled policy trips
+		 Table tolledTrips = trips.where(Selection.with(idy.toIntArray()));
+
+//		 only tolled policy trips by main mode car
+		 Table tolledCarTrips = tolledTrips.where(tolledTrips.stringColumn("main_mode").eval(m -> m.equals(TransportMode.car)));
+
+		Set<String> tolledPersons = new HashSet<>(tolledCarTrips.textColumn(person).asList());
+		Table result = filtered.where(filtered.textColumn(person).isIn(tolledPersons));
+
+		Table joined = new DataFrameJoiner(result, person).inner(persons);
 
 //		write income distr of tolled persons
 		writeIncomeDistr(joined);
@@ -117,7 +166,7 @@ public class RoadPricingAnalysis implements MATSimAppCommand {
 		homes.write().csv(output.getPath("roadPricing_tolled_agents_home_locations.csv").toFile());
 
 //		write road pricing shp such that simwrapper can access it
-		Config config = ConfigUtils.loadConfig(input.getPath("config.xml"));
+		Config config = ConfigUtils.loadConfig(configPath);
 
 		writeTollAreaShpFile(config);
 
@@ -220,14 +269,27 @@ public class RoadPricingAnalysis implements MATSimAppCommand {
 		List<String> avgTolls = new ArrayList<>();
 
 		for (String k : labels.keySet()) {
+			boolean labelFound = false;
 			for (int i = 0; i < aggr.rowCount() - 1; i++) {
 				Row row = aggr.row(i);
 				if (row.getString(incomeGroup).equals(k)) {
 					incomeDistr.add(k + "," + row.getDouble("Count [person]") + "," + row.getDouble("share"));
 					avgTolls.add(k + "," + Math.abs(row.getDouble("Mean [amount]")) + "," + Math.abs(row.getDouble("Median [amount]")));
+					labelFound = true;
 					break;
 				}
 			}
+			if (!labelFound) {
+				incomeDistr.add(k + "," + 0 + "," + 0);
+				avgTolls.add(k + "," + 0 + "," + 0);
+			}
+		}
+
+//		if not all labels are present in incomeDistr or avgToll, abort
+		if (!(labels.size() == incomeDistr.size() && labels.size() == avgTolls.size())) {
+			log.fatal("It seems like not all income groups have been processed correctly! number of income group labels: {}. " +
+				"Number of income groups for distribution: {}. Number of income groups for avgToll: {}.", labels.size(), incomeDistr.size(), avgTolls.size());
+			throw new IllegalArgumentException();
 		}
 
 		incomeDistr.sort(Comparator.comparingInt(RoadPricingAnalysis::getLowerBound));
@@ -259,6 +321,24 @@ public class RoadPricingAnalysis implements MATSimAppCommand {
 		} catch (IOException e) {
 			throw new IllegalArgumentException();
 		}
+	}
+
+	private double parseTimeManually(String time) {
+		String[] parts = time.split(":");
+		if (parts.length != 3) {
+			throw new IllegalArgumentException("Invalid time format: " + time);
+		}
+
+		double hours = Double.parseDouble(parts[0]);
+		double minutes = Double.parseDouble(parts[1]);
+		double seconds = Double.parseDouble(parts[2]);
+
+		// Validate minutes and seconds
+		if (minutes < 0 || minutes > 59 || seconds < 0 || seconds > 59) {
+			throw new IllegalArgumentException("Invalid minutes or seconds in: " + time);
+		}
+
+		return hours * 3600 + minutes * 60 + seconds;
 	}
 
 	private static int getLowerBound(String s) {
