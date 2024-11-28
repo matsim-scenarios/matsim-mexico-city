@@ -28,6 +28,7 @@ shp <- st_read(paste0("./",analysisDir,"/roadPricing_area.shp"), crs=crs)
 
 baseTripsFile <- list.files(path = "../../../baseCase/output/output-mexico-city-v1.0-1pct", pattern = "output_trips.csv.gz", full.names = TRUE)
 roadPricingTripsFile <- list.files(pattern = "output_trips.csv.gz")
+roadPricingActivitiesFile <- list.files(pattern = "output_activities.csv.gz")
 
 ###################################################### policy case trips #####################################################################
 
@@ -86,6 +87,27 @@ trips_base <- trips_base %>%
     end_y = as.double(end_y))
 attr(trips_base,"table_name") <- baseTripsFile
 
+# activities are the same for base / policy, time related values change, but we do not care about them here
+activities <- read_delim(roadPricingActivitiesFile,
+                         locale = locale(decimal_mark = "."),
+                         n_max = Inf)
+
+activities_base_summary <- activities %>% 
+  group_by(person) %>% 
+  summarise(num_acts = n())
+
+ggplot(activities_base_summary, aes(x = "", y = num_acts)) +
+  geom_violin(fill = "purple4", color = "black") +
+  # geom_vline(xintercept = 1, color = "black", linetype = "dashed", size = 1) +
+  labs(title = "Distribution of number of activities/person - base case", y = "number of acts/person") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 20),
+    axis.title = element_text(size = 15),
+    axis.text = element_text(size = 12)
+  ) +
+  scale_y_continuous(limits = c(0, max(activities_base_summary$num_acts)), breaks= seq(0, max(activities_base_summary$num_acts), by=1))
+
 points_start <- st_as_sf(trips_base, coords = c('start_x', 'start_y'), crs = crs) %>%
   mutate(start_within = as.integer(st_within(geometry, shp)))
 
@@ -97,7 +119,22 @@ trips_base <- merge(trips_base, points_start[, c("trip_id", "start_within")], by
   filter(!is.na(start_within) | !is.na(end_within)) %>%
   select(-geometry.x, -geometry.y, -start_within, -end_within)
 
-########################################## analyze mean number of car trips / person for base and policy ####################################################
+########################################## analyze mean number of car trips and activities / person for base and policy ####################################################
+
+activities_base_car_summary <- activities %>% 
+  right_join(trips_base %>% filter(main_mode=="car"), by="person") %>%
+  group_by(person) %>% 
+  summarise(num_acts = n())
+
+mean_num_acts_car_base <- mean(activities_base_car_summary$num_acts)
+
+activities_roadPricing_car_summary <- activities %>% 
+  right_join(trips_roadPricing %>% filter(main_mode=="car"), by="person") %>%
+  group_by(person) %>% 
+  summarise(num_acts = n())
+
+mean_num_acts_car_roadPricing <- mean(activities_roadPricing_car_summary$num_acts)
+  
 
 trips_base_car_summary <- trips_base %>% 
   filter(main_mode == "car") %>% 
@@ -113,8 +150,8 @@ trips_roadPricing_car_summary <- trips_roadPricing %>%
 
 mean_num_trips_car_roadPricing <- mean(trips_roadPricing_car_summary$num_trips)
 
-names <- c("meanNumTripsBase", "meanNumTripsRoadPricing")
-values <- c(mean_num_trips_car_base, mean_num_trips_car_roadPricing)
+names <- c("meanNumTripsBase", "meanNumTripsRoadPricing", "meanNumActsBase", "meanNumActsRoadPricing")
+values <- c(mean_num_trips_car_base, mean_num_trips_car_roadPricing, mean_num_acts_car_base, mean_num_acts_car_roadPricing)
 
 df_mean_num_trips <- data.frame(names, values) 
   
