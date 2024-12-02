@@ -35,7 +35,7 @@ input/network.osm:input/network.osm.pbf
 #	after thinking about whether to use the exact city borders from shp or a bounding box, the bounding box is chosen
  #	because streets do not necessarily end at the city border and some more detailed network does not hurt,
  #	as long as the net does not become too large -sme1023
- #	 --bounding-polygon file="../shared-svn/projects/$N/data/area.poly"\#
+ #	 --bounding-polygon file="../shared-svn/projects/$(N)/data/area.poly"\#
 
 	$(osmosis) --rb file=$<\
 	 --tf accept-ways bicycle=yes highway=motorway,motorway_link,trunk,trunk_link,primary,primary_link,secondary_link,secondary,tertiary,motorway_junction,residential,unclassified,living_street\
@@ -97,8 +97,8 @@ input/first-network.xml.gz: input/sumo.net.xml ..\..\public-svn\matsim\scenarios
 input/first-network-with-pt.xml.gz: input/first-network.xml.gz
 	$(sc) --income-area "" prepare transit-from-gtfs --network $<\
 	 --output=input/\
-	 --name $N-$V --date "2023-03-07" --target-crs $(CRS) \
-	 ../../public-svn/matsim/scenarios/countries/mx/$N/$N-$V/input/data-scenario-generation/gtfs_semovi_2024-02-22.zip
+	 --name $(N)-$V --date "2023-03-07" --target-crs $(CRS) \
+	 ../../public-svn/matsim/scenarios/countries/mx/$(N)/$(N)-$V/input/data-scenario-generation/gtfs_semovi_2024-02-22.zip
 
 input/mexico-city-v1.0-transitVehicles_corrected.xml.gz: input/mexico-city-v1.0-transitVehicles.xml.gz
 	 $(sc) --income-area "" prepare correct-pt-vehicle-types\
