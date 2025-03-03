@@ -5,19 +5,19 @@ library(sf)
 library(ggokabeito)
 
 ############################################# plot bars for income distr comparison avenidas principales #####################################################################
-income_distr52 <- read_delim(file = "Y:/net/ils/matsim-mexico-city/case-studies/roadPricing-avenidas-principales/output-b61a23c-bike-tolled/output-mexico-city-v1.0-1pct-roadPricing-avenidas-principales-fare52/analysis/roadpricing-roadPricing/roadPricing_income_groups.csv",
+income_distr52 <- read_delim(file = "Y:/net/ils/matsim-mexico-city/case-studies/roadPricing-avenidas-principales/output-b61a23c-bike-tolled/output-mexico-city-v1.0-1pct-roadPricing-avenidas-principales-fare52/analysis/roadpricing/roadPricing_income_groups.csv",
                               locale = locale(decimal_mark = "."),
                               n_max = Inf) %>% 
   rename(absolute = "share")
-income_distr0.001 <- read_delim(file = "Y:/net/ils/matsim-mexico-city/case-studies/roadPricing-avenidas-principales/output-b61a23c-bike-tolled/output-mexico-city-v1.0-1pct-roadPricing-avenidas-principales-relative-income-fare0.001/analysis/roadpricing-roadPricing/roadPricing_income_groups.csv",
+income_distr0.001 <- read_delim(file = "Y:/net/ils/matsim-mexico-city/case-studies/roadPricing-avenidas-principales/output-b61a23c-bike-tolled/output-mexico-city-v1.0-1pct-roadPricing-avenidas-principales-relative-income-fare0.001/analysis/roadpricing/roadPricing_income_groups.csv",
                               locale = locale(decimal_mark = "."),
                               n_max = Inf) %>% 
   rename(relative_0.001 = "share")
-income_distr0.005 <- read_delim(file = "Y:/net/ils/matsim-mexico-city/case-studies/roadPricing-avenidas-principales/output-b61a23c-bike-tolled/output-mexico-city-v1.0-1pct-roadPricing-avenidas-principales-relative-income-fare0.005/analysis/roadpricing-roadPricing/roadPricing_income_groups.csv",
+income_distr0.005 <- read_delim(file = "Y:/net/ils/matsim-mexico-city/case-studies/roadPricing-avenidas-principales/output-b61a23c-bike-tolled/output-mexico-city-v1.0-1pct-roadPricing-avenidas-principales-relative-income-fare0.005/analysis/roadpricing/roadPricing_income_groups.csv",
                                 locale = locale(decimal_mark = "."),
                                 n_max = Inf) %>% 
   rename(relative_0.005 = "share")
-income_distr0.01 <- read_delim(file = "Y:/net/ils/matsim-mexico-city/case-studies/roadPricing-avenidas-principales/output-b61a23c-bike-tolled/output-mexico-city-v1.0-1pct-roadPricing-avenidas-principales-relative-income-fare0.01/analysis/roadpricing-roadPricing/roadPricing_income_groups.csv",
+income_distr0.01 <- read_delim(file = "Y:/net/ils/matsim-mexico-city/case-studies/roadPricing-avenidas-principales/output-b61a23c-bike-tolled/output-mexico-city-v1.0-1pct-roadPricing-avenidas-principales-relative-income-fare0.01/analysis/roadpricing/roadPricing_income_groups.csv",
                                 locale = locale(decimal_mark = "."),
                                 n_max = Inf) %>% 
   rename(relative_0.01 = "share")
@@ -48,7 +48,7 @@ income_distr <- income_distr %>%
 df_long <- income_distr %>%
   gather(key = "share_type", value = "share_value", absolute, relative_0.001, relative_0.005, relative_0.01)
 
-ggplot(df_long, aes(x = incomeGroup_char, y = share_value, fill = incomeGroup)) +
+plot_income_groups_avenidas <- ggplot(df_long, aes(x = incomeGroup_char, y = share_value, fill = incomeGroup)) +
   geom_bar(stat = "identity", position = "dodge") +
   facet_wrap(~share_type) +
   labs(x = "Income Group",
@@ -65,6 +65,10 @@ ggplot(df_long, aes(x = incomeGroup_char, y = share_value, fill = incomeGroup)) 
     axis.text.x = element_text(angle = 90, hjust = 1),
     strip.text = element_text(size = 30))
 
+print(plot_income_groups_avenidas)
+# save to pdf with high resolution
+ggsave("income_distr_roadPricing_avenidas_principales.pdf", plot_income_groups_avenidas, dpi = 500, w = 12, h = 9)
+
 ############################################## plot facet for modal shift over all cases ################################################################
 
 data <- read.delim(file="Y:/net/ils/matsim-mexico-city/case-studies/roadPricing_modalShift_cdmx.tsv")
@@ -80,7 +84,7 @@ data_long <- data %>%
 data_long$tollAmountChar <- as.factor(data_long$tollAmountChar)
 
 # Plot
-ggplot(data_long, aes(x = tollAmountChar, y = value, color = transport_mode)) +
+facet_plot_modal_shift <- ggplot(data_long, aes(x = tollAmountChar, y = value, color = transport_mode)) +
   geom_point(size = 2, position = position_jitter(width = 0.2, height = 0)) +  # Add jitter to avoid overlap
   facet_wrap(~ case) +
   labs(
@@ -91,13 +95,17 @@ ggplot(data_long, aes(x = tollAmountChar, y = value, color = transport_mode)) +
   scale_color_okabe_ito() +
   theme_minimal() +
   theme(
-    axis.title.x = element_text(size = 14),
-    axis.title.y = element_text(size = 14),
-    axis.text = element_text(size = 12),
-    legend.title = element_text(size = 14),
-    legend.text = element_text(size = 12),
-    strip.text = element_text(size = 14)
+    axis.title.x = element_text(size = 25),
+    axis.title.y = element_text(size = 25),
+    axis.text = element_text(size = 23),
+    legend.title = element_text(size = 25),
+    legend.text = element_text(size = 23),
+    strip.text = element_text(size = 25)
   )
+facet_plot_modal_shift
+
+# save to pdf with high resolution
+ggsave("overHauled_roadPricing_modal_shift_cdmx.pdf", facet_plot_modal_shift, dpi = 500, w = 12, h = 9) 
 
 
 ############################################## analyze mean trip length for every transport mode in base #################################################
@@ -230,16 +238,20 @@ grouped <- persons_base %>%
   arrange(desc(income_group)) %>%
   mutate(income_group = factor(income_group, levels = income_group))
 
-ggplot(grouped, aes(x = income_group, y = share)) +
+plot_income_base_overall <- ggplot(grouped, aes(x = income_group, y = share)) +
   geom_bar(stat = "identity", width = 0.7) +
   labs(title = "overall", x = "Income Group", y = "Share") +
   theme_minimal() +
   theme(
-    plot.title = element_text(size = 30, hjust = 0.5),
-    axis.title = element_text(size = 30),
-    axis.text = element_text(size = 30),
+    plot.title = element_text(size = 50, hjust = 0.5),
+    axis.title = element_text(size = 50),
+    axis.text = element_text(size = 50),
     axis.text.x = element_text(angle = 90, hjust = 1)) +
   ylim(0, 1)
+plot_income_base_overall
+
+# save to pdf with high resolution
+ggsave("base_income_distr_overall.pdf", plot_income_base_overall, dpi = 500, w = 12, h = 9) 
 
 modes <- c("car", "bike", "pt", "taxibus", "walk")
 
@@ -263,13 +275,15 @@ for (mode in modes) {
             labs(title = mode, x = "Income Group", y = "Share") +
             theme_minimal() +
             theme(
-              plot.title = element_text(size = 30, hjust = 0.5),
-              axis.title = element_text(size = 30),
-              axis.text = element_text(size = 30),
+              plot.title = element_text(size = 50, hjust = 0.5),
+              axis.title = element_text(size = 50),
+              axis.text = element_text(size = 50),
               axis.text.x = element_text(angle = 90, hjust = 1)) +
     ylim(0, 1)
   
   print(plot)
+  # save to pdf with high resolution
+  ggsave(paste0("base_income_distr_",mode,".pdf"), plot, dpi = 500, w = 12, h = 9)
 }
 
 
